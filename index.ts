@@ -72,19 +72,23 @@ app.use(function (req, res) {
   res.send(404);
 });
 
-if (!devEnv) {
+const useHttps = process.env.USE_HTTPS === "true" || false;
+
+if (useHttps) {
   const key = fs.readFileSync(__dirname + "/../certs/ssl.key");
   const cert = fs.readFileSync(__dirname + "/../certs/ssl.crt");
   const sslOptions = { key: key, cert: cert };
   const httpsServer = https.createServer(sslOptions, app);
   httpsServer.listen(Number(process.env.PORT), async () => {
     log.info("Cache Initialized, Serving...", {
+      protocol: "https",
       port: Number(process.env.PORT),
     });
   });
 } else {
   app.listen(Number(process.env.PORT), async () => {
     log.info("Cache Initialized, Serving...", {
+      protocol: "http",
       port: Number(process.env.PORT),
     });
   });
