@@ -1,0 +1,27 @@
+name: Linter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Linting & Formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Get Dependencies
+        run: npm ci
+
+      - name: Check Formatting
+        run: npx prettier --check ./
+
+      - name: Check Linting
+        run: npx eslint ./
