@@ -388,7 +388,7 @@ export class ReleaseCache {
   }
 
   public async refreshPullRequestBuildCache(cid: string): Promise<void> {
-    log.info("refreshing main release cache", {
+    log.info("refreshing pull request cache", {
       cid: cid,
       cacheType: "pullRequests",
     });

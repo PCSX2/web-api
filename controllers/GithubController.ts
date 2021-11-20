@@ -24,9 +24,10 @@ export class GithubController {
   // for the foreseeable future though, this is fine
   webhookHandler(req: Request, resp: Response) {
     const cid = uuidv4();
-    this.log.info("Received request", req.headers);
+    this.log.info("Received webhook request");
     const ghDigestRaw = req.header("x-hub-signature-256");
     if (ghDigestRaw == undefined) {
+      this.log.warn("Webhook lacked digest signature, ignoring");
       resp.send(403);
       return;
     }
@@ -41,34 +42,23 @@ export class GithubController {
     if (crypto.timingSafeEqual(digest, ghDigest)) {
       // Valid webhook from github, proceed
       const body = req.body;
-      if (
-        "action" in body &&
-        body.action == "published" &&
-        "release" in body &&
-        body.release.draft == true
-      ) {
+      if (body?.action === "published" && body?.release?.draft == false) {
         // Release event
-        if (
-          "repository" in body &&
-          body.repository.full_name == "PCSX2/pcsx2"
-        ) {
+        if (body?.repository?.full_name == "PCSX2/pcsx2") {
+          this.log.info("Webhook was a release event from PCSX2!");
           this.releaseCache.refreshReleaseCache(cid);
-        } else if (
-          "repository" in body &&
-          body.repository.full_name == "PCSX2/archive"
-        ) {
+        } else if (body?.repository?.full_name == "PCSX2/archive") {
           this.releaseCache.refreshLegacyReleaseCache(cid);
         }
       } else if (
-        "action" in body &&
-        body.action == "completed" &&
-        "check_suite" in body &&
-        body.check_suite.status == "completed" &&
-        body.check_suite.conclusion == "success"
+        body?.action == "completed" &&
+        body?.check_suite?.status == "completed" &&
+        body?.check_suite?.conclusion == "success"
       ) {
         this.releaseCache.refreshPullRequestBuildCache(cid);
       }
     } else {
+      this.log.warn("Webhook digest signature was invalid, ignoring");
       resp.send(403);
       return;
     }

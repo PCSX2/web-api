@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import { ReleaseCache } from "./models/ReleaseCache";
 import { exit } from "process";
 import { LogFactory } from "./utils/LogFactory";
@@ -28,6 +29,7 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(compression());
 
 // Enable if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
 // see https://expressjs.com/en/guide/behind-proxies.html
