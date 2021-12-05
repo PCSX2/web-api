@@ -112,8 +112,9 @@ function gatherReleaseAssets(
     return assets;
   }
 
-  // All legacy builds are only windows 32 bit, we'll find it to confirm
-  if (legacy) {
+  // NOTE - pre-releases are assumed to be from the old nightly build system
+  // there names do not conform to a standard, and therefore they are hacked around
+  if (legacy && release.prerelease) {
     for (let i = 0; i < release.assets.length; i++) {
       const asset = release.assets[i];
       if (asset.name.includes("windows")) {
@@ -122,6 +123,36 @@ function gatherReleaseAssets(
             asset.browser_download_url,
             `Windows 32bit`,
             [],
+            asset.download_count
+          )
+        );
+      }
+    }
+    return assets;
+  } else if (legacy) {
+    for (let i = 0; i < release.assets.length; i++) {
+      const asset = release.assets[i];
+      const assetComponents = path
+        .parse(asset.name)
+        .name.split("-")
+        .map((s) => {
+          return s.replace(".tar", "");
+        });
+      if (asset.name.includes("windows")) {
+        assets.Windows.push(
+          new ReleaseAsset(
+            asset.browser_download_url,
+            `Windows`,
+            assetComponents.slice(3),
+            asset.download_count
+          )
+        );
+      } else if (asset.name.includes("linux")) {
+        assets.Linux.push(
+          new ReleaseAsset(
+            asset.browser_download_url,
+            `Linux`,
+            assetComponents.slice(3),
             asset.download_count
           )
         );
@@ -181,10 +212,14 @@ function gatherReleaseAssets(
 }
 
 export class ReleaseCache {
+  private combinedStableReleases: Release[] = [];
   private stableReleases: Release[] = [];
+  private legacyStableReleases: Release[] = [];
+
   private combinedNightlyReleases: Release[] = [];
   private nightlyReleases: Release[] = [];
   private legacyNightlyReleases: Release[] = [];
+
   private pullRequestBuilds: PullRequest[] = [];
 
   private initialized: boolean;
@@ -254,6 +289,10 @@ export class ReleaseCache {
         b.semverMinor - a.semverMinor ||
         b.semverPatch - a.semverPatch
     );
+    this.combinedStableReleases = this.stableReleases.concat(
+      this.legacyStableReleases
+    );
+
     this.nightlyReleases = newNightlyReleases;
     this.nightlyReleases.sort(
       (a, b) =>
@@ -282,7 +321,8 @@ export class ReleaseCache {
       }
     );
 
-    const newLegacyReleases: Release[] = [];
+    const newLegacyNightlyReleases: Release[] = [];
+    const newStableStableReleases: Release[] = [];
     for (let i = 0; i < legacyReleases.length; i++) {
       const release = legacyReleases[i];
       if (release.draft) {
@@ -291,25 +331,28 @@ export class ReleaseCache {
       const releaseAssets = gatherReleaseAssets(release, true);
       const semverGroups = release.tag_name.match(semverRegex);
       if (semverGroups != null && semverGroups.length == 4) {
-        newLegacyReleases.push(
-          new Release(
-            release.tag_name,
-            release.html_url,
-            Number(semverGroups[1]),
-            Number(semverGroups[2]),
-            Number(semverGroups[3]),
-            release.body == undefined || release.body == null
-              ? release.body
-              : striptags(release.body),
-            releaseAssets,
-            ReleaseType.Nightly,
-            release.prerelease,
-            new Date(release.created_at),
-            release.published_at == null
-              ? undefined
-              : new Date(release.published_at)
-          )
+        const newRelease = new Release(
+          release.tag_name,
+          release.html_url,
+          Number(semverGroups[1]),
+          Number(semverGroups[2]),
+          Number(semverGroups[3]),
+          release.body == undefined || release.body == null
+            ? release.body
+            : striptags(release.body),
+          releaseAssets,
+          ReleaseType.Nightly,
+          release.prerelease,
+          new Date(release.created_at),
+          release.published_at == null
+            ? undefined
+            : new Date(release.published_at)
         );
+        if (newRelease.prerelease) {
+          newLegacyNightlyReleases.push(newRelease);
+        } else {
+          newStableStableReleases.push(newRelease);
+        }
       } else {
         log.warn("invalid semantic version", {
           cid: cid,
@@ -319,7 +362,18 @@ export class ReleaseCache {
         });
       }
     }
-    this.legacyNightlyReleases = newLegacyReleases;
+    this.legacyStableReleases = newStableStableReleases;
+    this.legacyStableReleases.sort(
+      (a, b) =>
+        b.semverMajor - a.semverMajor ||
+        b.semverMinor - a.semverMinor ||
+        b.semverPatch - a.semverPatch
+    );
+    this.combinedStableReleases = this.stableReleases.concat(
+      this.legacyStableReleases
+    );
+
+    this.legacyNightlyReleases = newLegacyNightlyReleases;
     this.legacyNightlyReleases.sort(
       (a, b) =>
         b.semverMajor - a.semverMajor ||
@@ -431,7 +485,7 @@ export class ReleaseCache {
         }
       }
       this.pullRequestBuilds = newPullRequestCache;
-      log.info("finished refreshing main release cache", {
+      log.info("finished refreshing pull request cache", {
         cid: cid,
         cacheType: "pullRequests",
       });
@@ -450,30 +504,40 @@ export class ReleaseCache {
   }
 
   public getStableReleases(cid: string, offset: number, pageSize: number) {
-    if (offset >= this.stableReleases.length) {
-      return [];
+    if (offset >= this.combinedStableReleases.length) {
+      return {
+        data: [],
+        pageInfo: {
+          total: 0,
+        },
+      };
     }
 
     const ret = [];
     for (
       let i = 0;
-      i < pageSize && i + offset < this.stableReleases.length;
+      i < pageSize && i + offset < this.combinedStableReleases.length;
       i++
     ) {
-      ret.push(this.stableReleases[i + offset]);
+      ret.push(this.combinedStableReleases[i + offset]);
     }
 
     return {
       data: ret,
       pageInfo: {
-        total: this.stableReleases.length,
+        total: this.combinedStableReleases.length,
       },
     };
   }
 
   public getNightlyReleases(cid: string, offset: number, pageSize: number) {
     if (offset >= this.combinedNightlyReleases.length) {
-      return [];
+      return {
+        data: [],
+        pageInfo: {
+          total: 0,
+        },
+      };
     }
 
     const ret = [];
@@ -495,7 +559,12 @@ export class ReleaseCache {
 
   public getPullRequestBuilds(cid: string, offset: number, pageSize: number) {
     if (offset >= this.pullRequestBuilds.length) {
-      return [];
+      return {
+        data: [],
+        pageInfo: {
+          total: 0,
+        },
+      };
     }
 
     const ret = [];
