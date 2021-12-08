@@ -61,18 +61,11 @@ Octokit.plugin(retry);
 const log = new LogFactory("release-cache").getLogger();
 
 const semverRegex = /v?(\d+)\.(\d+)\.(\d+)/;
+const semverNoPatchRegex = /v?(\d+)\.(\d+)/;
 
 const octokit = new Octokit({
   auth: process.env.GH_TOKEN,
   userAgent: "PCSX2/PCSX2.github.io",
-  log: {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    debug: () => {},
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    info: () => {},
-    warn: console.warn,
-    error: console.error,
-  },
   throttle: {
     onRateLimit: (retryAfter: any, options: any) => {
       log.warn(
@@ -248,7 +241,14 @@ export class ReleaseCache {
         continue;
       }
       const releaseAssets = gatherReleaseAssets(release, false);
-      const semverGroups = release.tag_name.match(semverRegex);
+      let semverGroups = release.tag_name.match(semverRegex);
+      // work-around an old improper stable release semver (missing patch)
+      if (semverGroups == null || semverGroups.length != 4) {
+        const tempGroups = release.tag_name.match(semverNoPatchRegex);
+        if (tempGroups != null && tempGroups.length == 3) {
+          semverGroups = [tempGroups[0], tempGroups[1], tempGroups[2], "0"];
+        }
+      }
       if (semverGroups != null && semverGroups.length == 4) {
         const newRelease = new Release(
           release.tag_name,
