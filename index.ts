@@ -18,8 +18,44 @@ if (ghWebhookSecret == undefined) {
   exit(1);
 }
 
+// explicit list of origins to allow
+let corsAllowedOriginWhitelist: string[] = [];
+if (process.env.CORS_ALLOWED_ORIGINS != undefined) {
+  corsAllowedOriginWhitelist = process.env.CORS_ALLOWED_ORIGINS.split(",");
+}
+
+// allowed origins via regex patterns
+let corsAllowedOriginPatterns: string[] = [];
+if (process.env.CORS_ALLOWED_ORIGIN_PATTERNS != undefined) {
+  corsAllowedOriginPatterns =
+    process.env.CORS_ALLOWED_ORIGIN_PATTERNS.split(",");
+}
+
+// if we are in a dev environment, allow local origins
+if (devEnv) {
+  corsAllowedOriginPatterns.push("^https?:\\/\\/localhost:\\d+");
+}
+
 const corsOptions = {
-  origin: devEnv ? "http://localhost:8080" : process.env.CORS_FRONTEND_URL,
+  // @typescript-eslint/no-explicit-any
+  origin: function (origin: any, callback: any) {
+    if (origin == undefined) {
+      // Request did not originate from a browser, allow it
+      callback(null, true);
+    } else if (corsAllowedOriginWhitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // check the regex's, this is to support things like cloudflare pages that subdomain with the commit sha
+      for (let i = 0; i < corsAllowedOriginPatterns.length; i++) {
+        if (origin.match(corsAllowedOriginPatterns[i]) != null) {
+          callback(null, true);
+          return;
+        }
+      }
+      callback(new Error(`'${origin}' not matched by CORS whitelist`));
+    }
+  },
+  methods: "GET,POST,OPTIONS",
   optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
