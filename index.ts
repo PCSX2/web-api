@@ -94,7 +94,7 @@ const releaseCache = new ReleaseCache();
   await releaseCache.refreshReleaseCache(cid);
   await releaseCache.refreshPullRequestBuildCache(cid);
   // build up legacy releases in the background
-  // releaseCache.refreshLegacyReleaseCache(cid);
+  releaseCache.refreshLegacyReleaseCache(cid);
   log.info("Initializing Server Cache", { cid: cid });
 })();
 
