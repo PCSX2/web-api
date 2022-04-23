@@ -88,7 +88,7 @@ const octokit = new Octokit({
 // NOTE - Depends on asset naming convention:
 // pcsx2-<version>-windows-<arch>-<additional tags>.whatever
 // In the case of macOS:
-// pcsx2-<version>-macOS-<macOS version (ie. Mojave)>-<additional tags>.whatever
+// pcsx2-<version>-macOS-<additional tags>.whatever
 // In the case of linux:
 // pcsx2-<version>-linux-<distro OR appimage>-<arch>-<additional tags>.whatever
 function gatherReleaseAssets(
@@ -157,7 +157,17 @@ function gatherReleaseAssets(
   for (let i = 0; i < release.assets.length; i++) {
     const asset = release.assets[i];
     const assetComponents = path.parse(asset.name).name.split("-");
-    if (assetComponents.length < 4) {
+    if (assetComponents.length < 3) {
+      log.warn("invalid release asset naming", {
+        isLegacy: legacy,
+        semver: release.tag_name,
+        assetName: asset.name,
+      });
+      continue;
+    } else if (
+      assetComponents[2].toLowerCase() !== "macos" &&
+      assetComponents.length < 4
+    ) {
       log.warn("invalid release asset naming", {
         isLegacy: legacy,
         semver: release.tag_name,
@@ -189,12 +199,11 @@ function gatherReleaseAssets(
         )
       );
     } else if (assetComponents[2].toLowerCase() == "macos") {
-      const osxVersion = assetComponents[3];
-      const additionalTags = assetComponents.slice(4);
+      const additionalTags = assetComponents.slice(3);
       assets.MacOS.push(
         new ReleaseAsset(
           asset.browser_download_url,
-          `MacOS ${osxVersion}`,
+          `MacOS`,
           additionalTags,
           asset.download_count
         )
@@ -282,26 +291,26 @@ export class ReleaseCache {
       }
     }
     this.stableReleases = newStableReleases;
-    // Releases returned from github are not sorted by semantic version, but by published date -- this ensures consistency
-    this.stableReleases.sort(
-      (a, b) =>
-        b.semverMajor - a.semverMajor ||
-        b.semverMinor - a.semverMinor ||
-        b.semverPatch - a.semverPatch
-    );
     this.combinedStableReleases = this.stableReleases.concat(
       this.legacyStableReleases
     );
-
-    this.nightlyReleases = newNightlyReleases;
-    this.nightlyReleases.sort(
+    // Releases returned from github are not sorted by semantic version, but by published date -- this ensures consistency
+    this.combinedStableReleases.sort(
       (a, b) =>
         b.semverMajor - a.semverMajor ||
         b.semverMinor - a.semverMinor ||
         b.semverPatch - a.semverPatch
     );
+
+    this.nightlyReleases = newNightlyReleases;
     this.combinedNightlyReleases = this.nightlyReleases.concat(
       this.legacyNightlyReleases
+    );
+    this.combinedNightlyReleases.sort(
+      (a, b) =>
+        b.semverMajor - a.semverMajor ||
+        b.semverMinor - a.semverMinor ||
+        b.semverPatch - a.semverPatch
     );
     log.info("main release cache refreshed", { cid: cid, cacheType: "main" });
   }
@@ -331,6 +340,20 @@ export class ReleaseCache {
       const releaseAssets = gatherReleaseAssets(release, true);
       const semverGroups = release.tag_name.match(semverRegex);
       if (semverGroups != null && semverGroups.length == 4) {
+        let createdAt = release.created_at;
+        // Allow the creation date to be overridden
+        if (release.body !== undefined && release.body !== null) {
+          if (release.body.includes("DATE_OVERRIDE")) {
+            const regexp = /DATE_OVERRIDE:\s?(\d{4}-\d{2}-\d{2})/g;
+            const match = Array.from(
+              release.body.matchAll(regexp),
+              (m) => m[1]
+            );
+            if (match.length > 0) {
+              createdAt = `${match[0]}T12:00:00.000Z`;
+            }
+          }
+        }
         const newRelease = new Release(
           release.tag_name,
           release.html_url,
@@ -343,7 +366,7 @@ export class ReleaseCache {
           releaseAssets,
           ReleaseType.Nightly,
           release.prerelease,
-          new Date(release.created_at),
+          new Date(createdAt),
           release.published_at == null
             ? undefined
             : new Date(release.published_at)
@@ -363,25 +386,25 @@ export class ReleaseCache {
       }
     }
     this.legacyStableReleases = newStableStableReleases;
-    this.legacyStableReleases.sort(
-      (a, b) =>
-        b.semverMajor - a.semverMajor ||
-        b.semverMinor - a.semverMinor ||
-        b.semverPatch - a.semverPatch
-    );
     this.combinedStableReleases = this.stableReleases.concat(
       this.legacyStableReleases
     );
-
-    this.legacyNightlyReleases = newLegacyNightlyReleases;
-    this.legacyNightlyReleases.sort(
+    this.combinedStableReleases.sort(
       (a, b) =>
         b.semverMajor - a.semverMajor ||
         b.semverMinor - a.semverMinor ||
         b.semverPatch - a.semverPatch
     );
+
+    this.legacyNightlyReleases = newLegacyNightlyReleases;
     this.combinedNightlyReleases = this.nightlyReleases.concat(
       this.legacyNightlyReleases
+    );
+    this.combinedNightlyReleases.sort(
+      (a, b) =>
+        b.semverMajor - a.semverMajor ||
+        b.semverMinor - a.semverMinor ||
+        b.semverPatch - a.semverPatch
     );
     log.info("legacy release cache refreshed", {
       cid: cid,
