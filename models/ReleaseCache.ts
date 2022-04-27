@@ -164,10 +164,11 @@ function gatherReleaseAssets(
         assetName: asset.name,
       });
       continue;
-    } else if (
-      assetComponents[2].toLowerCase() !== "macos" &&
-      assetComponents.length < 4
-    ) {
+    }
+    let platform = assetComponents[2].toLowerCase();
+    if (assetComponents[2].toLowerCase().startsWith("macos")) {
+      platform = "macos";
+    } else if (assetComponents.length < 4) {
       log.warn("invalid release asset naming", {
         isLegacy: legacy,
         semver: release.tag_name,
@@ -175,7 +176,7 @@ function gatherReleaseAssets(
       });
       continue;
     }
-    const platform = assetComponents[2].toLowerCase();
+
     if (platform == "windows") {
       const arch = assetComponents[3];
       const additionalTags = assetComponents.slice(4);
@@ -187,7 +188,7 @@ function gatherReleaseAssets(
           asset.download_count
         )
       );
-    } else if (assetComponents[2].toLowerCase() == "linux") {
+    } else if (platform == "linux") {
       const distroOrAppImage = assetComponents[3];
       const additionalTags = assetComponents.slice(4);
       assets.Linux.push(
@@ -198,7 +199,7 @@ function gatherReleaseAssets(
           asset.download_count
         )
       );
-    } else if (assetComponents[2].toLowerCase() == "macos") {
+    } else if (platform == "macos") {
       const additionalTags = assetComponents.slice(3);
       assets.MacOS.push(
         new ReleaseAsset(
