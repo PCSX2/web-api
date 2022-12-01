@@ -28,7 +28,7 @@
     "express": "^4.17.1",
     "express-rate-limit": "^5.5.1",
     "striptags": "^3.2.0",
-    "uuid": "^8.3.2",
+    "uuid": "^9.0.0",
     "winston": "^3.3.3",
     "winston-loki": "^6.0.3"
   },
@@ -37,7 +37,7 @@
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/node": "^16.11.7",
-    "@types/uuid": "^8.3.1",
+    "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.3.1",
     "@typescript-eslint/parser": "^5.3.1",
     "eslint": "^8.2.0",
