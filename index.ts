@@ -83,8 +83,8 @@ const limiter = rateLimit({
   },
 });
 
-// apply to all requests
-app.use(limiter);
+// apply to all requests. Commented out to avoid rate-limit conflicts. See issue #137
+// app.use(limiter);
 
 const releaseCache = new ReleaseCache();
 
