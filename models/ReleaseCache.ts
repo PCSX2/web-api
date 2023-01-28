@@ -156,7 +156,7 @@ function gatherReleaseAssets(
 
   for (let i = 0; i < release.assets.length; i++) {
     const asset = release.assets[i];
-    const assetComponents = path.parse(asset.name).name.split("-");
+    const assetComponents = path.parse(asset.name).name.replace(/\.[.a-zA-Z]+$/, "").split("-");
     if (assetComponents.length < 3) {
       log.warn("invalid release asset naming", {
         isLegacy: legacy,
