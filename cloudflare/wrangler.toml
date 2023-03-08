@@ -1,0 +1,10 @@
+main = "./src/index.ts"
+name = "worker-typescript-template"
+compatibility_date = "2022-07-26"
+node_compat = true
+[[ d1_databases ]]
+binding = "DB"
+database_name = "test-database"
+database_id = "5c92b32e-cee7-41fd-9f9d-caf926250e29"
+preview_database_name = "test-database-dev"
+preview_database_id = "be74a78d-8a79-43f7-b31f-8f3b70302065"
