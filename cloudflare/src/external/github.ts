@@ -8,8 +8,8 @@ import {
 	ReleaseAsset,
 	ReleasePlatform,
 	ReleaseType,
+	semverTagToIntegral,
 } from "../lib/releases";
-import { semverTagToIntegral } from "../utils/release-util";
 
 export function createGithubClient(token: string): Octokit {
 	Octokit.plugin(throttling);
@@ -37,6 +37,8 @@ export function createGithubClient(token: string): Octokit {
 		},
 	});
 }
+
+const fileNameRegex = /(.+v\d+\.\d+\.\d+[^.]*)\./g;
 
 // Assumed naming convention
 // windows:
@@ -72,17 +74,19 @@ export function getAssetsFromRelease(
 
 	// Handle legacy stable releases (TODO - will these end up being the same as normal!?!)
 	return release.assets.map((asset: components["schemas"]["release-asset"]) => {
-		// Get the name of the file (split on first 0)
-		const fileNameNoExt = asset.name.split(".")[0].toLowerCase();
 		// Determine the platform
 		let platform = ReleasePlatform.Windows;
-		if (fileNameNoExt.includes("linux")) {
+		if (asset.name.includes("linux")) {
 			platform = ReleasePlatform.Linux;
-		} else if (fileNameNoExt.includes("macos")) {
+		} else if (asset.name.includes("macos")) {
 			platform = ReleasePlatform.MacOS;
 		}
-		// Determine the tags
-		const tags = fileNameNoExt.split("-").slice(3);
+		// Determine the tags based on the filename
+		const filenameMatches = [...asset.name.matchAll(fileNameRegex)];
+		let tags: string[] = [];
+		if (filenameMatches.length > 0) {
+			tags = filenameMatches[0][1].split("-").slice(3);
+		}
 		// Finalize asset
 		return {
 			downloadUrl: asset.browser_download_url,
@@ -138,6 +142,7 @@ export async function getAllReleasesForRepo(
 			type: release.prerelease ? ReleaseType.Nightly : ReleaseType.Stable,
 			notes: release.body, // TODO - strip tags
 			assets: getAssetsFromRelease(release, legacyNaming),
+			channel: null,
 		});
 	}
 
