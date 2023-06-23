@@ -2,6 +2,7 @@ main = "./src/index.ts"
 name = "worker-typescript-template"
 compatibility_date = "2022-07-26"
 node_compat = true
+usage_model = "unbound"
 [[ d1_databases ]]
 binding = "DB"
 database_name = "test-database"

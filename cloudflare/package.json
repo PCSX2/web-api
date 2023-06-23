@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "Cloudflare worker TypeScript template",
 	"scripts": {
+		"setup-db": "node ./db/run-migrations.mjs",
 		"dev": "npx wrangler dev --local --persist",
 		"publish": "npx wrangler publish",
 		"format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",

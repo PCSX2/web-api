@@ -7,7 +7,13 @@ CREATE TABLE IF NOT EXISTS `releases` (
   `github_url` TEXT not null,
   `type` TEXT not null,
   `notes` TEXT null,
-  `channel` TEXT null
+  `channel` TEXT null,
+  `assets` TEXT DEFAULT "[]"
+    -- JSON
+    -- `download_url` TEXT not null,
+    -- `platform` TEXT not null,
+    -- `tags` TEXT null, /* JSON array */
+    -- `download_count` integer null,
 );
 CREATE UNIQUE INDEX IF NOT EXISTS releases_index_version ON releases (version);
 CREATE UNIQUE INDEX IF NOT EXISTS releases_index_version_normalized ON releases (version_integral);

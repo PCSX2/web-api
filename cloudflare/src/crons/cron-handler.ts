@@ -1,54 +1,13 @@
 import { Env } from "..";
 import { createGithubClient, getAllReleasesForRepo } from "../external/github";
-import { ReleasePlatform, ReleaseType } from "../lib/releases";
-import { insertRelease } from "../storage/d1";
+import { getAllReleasedVersions, emplaceReleases } from "../storage/d1";
 
-// a difference
-export async function comprehensiveReleaseUpdate(
+// TODO - also update download counts
+export async function insertAnyMissingReleases(
 	req: any,
 	env: Env,
 	ctx: ExecutionContext
 ): Promise<any> {
-	// TEST
-	// export interface ReleaseAsset {
-	// 	internalId?: number;
-	// 	releaseId?: number;
-	// 	downloadUrl: string;
-	// 	platform: ReleasePlatform;
-	// 	tags: string[];
-	// 	downloadCount: number;
-	// }
-	// await insertRelease(env.DB, {
-	// 	version: "test",
-	// 	versionIntegral: 123,
-	// 	createdTimestamp: "123",
-	// 	github_url: "ye",
-	// 	type: ReleaseType.Stable,
-	// 	publishedTimestamp: "now",
-	// 	notes: "none",
-	// 	assets: [
-	// 		{
-	// 			downloadUrl: "somewhere",
-	// 			platform: ReleasePlatform.Windows,
-	// 			tags: ["1", "and", "2"],
-	// 			downloadCount: 101,
-	// 		},
-	// 		{
-	// 			downloadUrl: "somewhere",
-	// 			platform: ReleasePlatform.Windows,
-	// 			tags: ["1", "and", "2"],
-	// 			downloadCount: 101,
-	// 		},
-	// 		{
-	// 			downloadUrl: "somewhere",
-	// 			platform: ReleasePlatform.Windows,
-	// 			tags: ["1", "and", "2"],
-	// 			downloadCount: 101,
-	// 		},
-	// 	],
-	// 	channel: "yee",
-	// });
-
 	// Iterate through all releases in the repos we care about
 	// and ensure they are in the database and up to date
 	//
@@ -58,6 +17,10 @@ export async function comprehensiveReleaseUpdate(
 	// If everything else functions as expected, this should never find
 	const client = createGithubClient(env.GITHUB_TOKEN);
 
+	// First, get a list of all releases in the database
+	const currentlyInsertedVersions = await getAllReleasedVersions(env.DB);
+	// CF Workers have a subrequest limit of 1000 on unbound workers
+	// so we conservatively only allow 50% of that (500) to be inserted
 	// Get all releases from the main repo
 	const mainRepoReleases = await getAllReleasesForRepo(
 		client,
@@ -65,14 +28,31 @@ export async function comprehensiveReleaseUpdate(
 		"pcsx2",
 		false
 	);
-	// and from the archive
-	// const archiveRepoReleases = getAllReleasesForRepo(client, "PCSX2", "archive");
 
-	// Store everything in the database
+	const releasesToEmplace = [];
+	// Mainline releases
 	for (const release of mainRepoReleases) {
-		await insertRelease(env.DB, release);
+		if (currentlyInsertedVersions.includes(release.version)) {
+			continue;
+		}
+		releasesToEmplace.push(release);
 	}
-	// TODO - poll the database, and upsert missing data / update edits instead!
+	// TODO - grab these in parallel with the above
+	const archiveRepoReleases = await getAllReleasesForRepo(
+		client,
+		"PCSX2",
+		"archive",
+		true
+	);
+	// Archived releases
+	for (const release of archiveRepoReleases) {
+		if (currentlyInsertedVersions.includes(release.version)) {
+			continue;
+		}
+		releasesToEmplace.push(release);
+	}
+	// Insert the releases
+	await emplaceReleases(env.DB, releasesToEmplace);
 
 	return;
 }

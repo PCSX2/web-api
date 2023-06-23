@@ -103,8 +103,6 @@ export async function getAllReleasesForRepo(
 	repo: string,
 	legacyNaming: boolean
 ) {
-	octokit.rest.repos.listReleases();
-
 	// log.info("refreshing main release cache", { cid: cid, cacheType: "main" });
 	const githubReleases = await octokit.paginate(
 		octokit.rest.repos.listReleases,
