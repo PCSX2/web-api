@@ -22,7 +22,8 @@ class ReleaseAsset {
     readonly url: string,
     readonly displayName: string,
     readonly additionalTags: string[], // things like 32bit, AppImage, distro names, etc
-    readonly downloadCount: number
+    readonly downloadCount: number,
+    readonly size: number,
   ) {}
 }
 
@@ -116,7 +117,8 @@ function gatherReleaseAssets(
             asset.browser_download_url,
             `Windows 32bit`,
             [],
-            asset.download_count
+            asset.download_count,
+            asset.size
           )
         );
       }
@@ -137,7 +139,8 @@ function gatherReleaseAssets(
             asset.browser_download_url,
             `Windows`,
             assetComponents.slice(3),
-            asset.download_count
+            asset.download_count,
+            asset.size
           )
         );
       } else if (asset.name.includes("linux")) {
@@ -146,7 +149,8 @@ function gatherReleaseAssets(
             asset.browser_download_url,
             `Linux`,
             assetComponents.slice(3),
-            asset.download_count
+            asset.download_count,
+            asset.size
           )
         );
       }
@@ -185,7 +189,8 @@ function gatherReleaseAssets(
           asset.browser_download_url,
           `Windows ${arch}`,
           additionalTags,
-          asset.download_count
+          asset.download_count,
+          asset.size
         )
       );
     } else if (platform == "linux") {
@@ -196,7 +201,8 @@ function gatherReleaseAssets(
           asset.browser_download_url,
           `Linux ${distroOrAppImage}`,
           additionalTags,
-          asset.download_count
+          asset.download_count,
+          asset.size
         )
       );
     } else if (platform == "macos") {
@@ -206,7 +212,8 @@ function gatherReleaseAssets(
           asset.browser_download_url,
           `MacOS`,
           additionalTags,
-          asset.download_count
+          asset.download_count,
+          asset.size
         )
       );
     }

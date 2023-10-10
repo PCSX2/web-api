@@ -15,6 +15,7 @@ const devEnv = process.env.NODE_ENV !== "production";
 
 const ghWebhookSecret = process.env.GH_WEBHOOK_SECRET;
 if (ghWebhookSecret == undefined) {
+  log.warn("GH_WEBHOOK_SECRET isn't set. Aborting");
   exit(1);
 }
 
