@@ -1,4 +1,4 @@
-import { Release, ReleaseAsset, ReleaseType } from "../lib/releases";
+import { Release, ReleaseAsset, ReleaseType, semverTagToIntegral } from "../lib/releases";
 
 export async function getAllReleasedVersions(
 	d1: D1Database
@@ -119,12 +119,11 @@ export async function getLatestRelease(
 	type: ReleaseType
 ): Promise<Release | undefined> {
 	const latestReleaseQuery = db.prepare(
-		"SELECT * FROM releases WHERE type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 1;"
+		"SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 1;"
 	);
 	const queryResults: any = await latestReleaseQuery.bind(type).all();
 
 	const rows = queryResults.results;
-	const assets: ReleaseAsset[] = [];
 	let release: Release | undefined = undefined;
 
 	for (const row of rows) {
@@ -143,10 +142,6 @@ export async function getLatestRelease(
 				nextAuditDays: row.next_audit_days,
 			};
 		}
-	}
-
-	if (release !== undefined) {
-		release.assets = assets;
 	}
 	return release;
 }
@@ -155,37 +150,31 @@ export async function getRecentReleases(
 	db: D1Database,
 	type: ReleaseType
 ): Promise<Release | undefined> {
-	const latestReleaseQuery = db.prepare(
-		"SELECT * FROM releases WHERE type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 100;"
+	const recentReleasesQuery = db.prepare(
+		"SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 100;"
 	);
-	const queryResults: any = await latestReleaseQuery.bind(type).all();
+	const queryResults: any = await recentReleasesQuery.bind(type).all();
+	console.log(queryResults);
 
 	const rows = queryResults.results;
-	const assets: ReleaseAsset[] = [];
-	let release: Release | undefined = undefined;
+	let releases: Release[] = [];
 
 	for (const row of rows) {
-		if (release === undefined) {
-			release = {
-				internalId: row.release_id,
-				version: row.version,
-				versionIntegral: row.published_timestamp,
-				createdTimestamp: row.created_timestamp,
-				githubUrl: row.github_url,
-				githubReleaseId: row.github_release_id,
-				releaseType: row.type,
-				notes: row.notes,
-				assets: JSON.parse(row.assets),
-				nextAudit: row.next_audit,
-				nextAuditDays: row.next_audit_days,
-			};
-		}
+		releases.push({
+			internalId: row.release_id,
+			version: row.version,
+			versionIntegral: row.published_timestamp,
+			createdTimestamp: row.created_timestamp,
+			githubUrl: row.github_url,
+			githubReleaseId: row.github_release_id,
+			releaseType: row.type,
+			notes: row.notes,
+			assets: JSON.parse(row.assets),
+			nextAudit: row.next_audit,
+			nextAuditDays: row.next_audit_days,
+		});
 	}
-
-	if (release !== undefined) {
-		release.assets = assets;
-	}
-	return release;
+	return releases;
 }
 
 export async function queryForReleaseList(
@@ -195,36 +184,65 @@ export async function queryForReleaseList(
 	offset: number
 ): Promise<Release | undefined> {
 	const latestReleaseQuery = db.prepare(
-		"SELECT * FROM releases WHERE type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT ? OFFSET ?;"
+		"SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT ? OFFSET ?;"
 	);
 	const queryResults: any = await latestReleaseQuery
 		.bind(type, limit, offset)
 		.all();
 
 	const rows = queryResults.results;
-	const assets: ReleaseAsset[] = [];
-	let release: Release | undefined = undefined;
+	let releases: Release[] = [];
 
 	for (const row of rows) {
-		if (release === undefined) {
-			release = {
-				internalId: row.release_id,
-				version: row.version,
-				versionIntegral: row.published_timestamp,
-				createdTimestamp: row.created_timestamp,
-				githubUrl: row.github_url,
-				githubReleaseId: row.github_release_id,
-				releaseType: row.type,
-				notes: row.notes,
-				assets: JSON.parse(row.assets),
-				nextAudit: row.next_audit,
-				nextAuditDays: row.next_audit_days,
-			};
-		}
+		releases.push({
+			internalId: row.release_id,
+			version: row.version,
+			versionIntegral: row.published_timestamp,
+			createdTimestamp: row.created_timestamp,
+			githubUrl: row.github_url,
+			githubReleaseId: row.github_release_id,
+			releaseType: row.type,
+			notes: row.notes,
+			assets: JSON.parse(row.assets),
+			nextAudit: row.next_audit,
+			nextAuditDays: row.next_audit_days,
+		});
 	}
+	return releases;
+}
 
-	if (release !== undefined) {
-		release.assets = assets;
+export async function getReleaseNotesForVersionRange(
+	db: D1Database,
+	base: string,
+	head: string
+): Promise<string> {
+	let baseVersion = base;
+	if (baseVersion.charAt(0) === "v") {
+		baseVersion = baseVersion.substring(1);
 	}
-	return release;
+	const baseVersionIntegral = semverTagToIntegral(baseVersion);
+	let headVersion = head;
+	if (headVersion.charAt(0) === "v") {
+		headVersion = headVersion.substring(1);
+	}
+	const headVersionIntegral = semverTagToIntegral(headVersion);
+
+
+
+	const latestReleaseQuery = db.prepare(
+		"SELECT notes FROM releases WHERE archived = 0 AND version_integral >= ? AND version_integral <= ? ORDER BY version_integral DESC;"
+	);
+	const queryResults: any = await latestReleaseQuery
+		.bind(baseVersionIntegral, headVersionIntegral)
+		.all();
+
+	const rows = queryResults.results;
+	let noteDiff: string = "";
+
+	console.log(rows);
+
+	for (const row of rows) {
+		noteDiff += row.notes;
+	}
+	return noteDiff;
 }

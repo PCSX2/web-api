@@ -5,6 +5,7 @@ import {
 	getLatestRelease,
 	getRecentReleases,
 	queryForReleaseList,
+	getReleaseNotesForVersionRange,
 } from "../../storage/d1";
 
 export async function latestReleases(
@@ -48,12 +49,14 @@ export async function listReleases(
 ): Promise<any> {
 	let releaseType: ReleaseType = ReleaseType.Nightly;
 	const type: string | undefined = req.query?.type;
+	// TODO - CORS
+	const headers = { "Content-type": "application/json" };
 	if (type === undefined) {
 		return new Response(
 			JSON.stringify({
 				error: "Invalid parameters, type must be 'nightly' or 'stable'.",
 			}),
-			{ status: 400 }
+			{ headers, status: 400 }
 		);
 	} else {
 		if (type === "nightly") {
@@ -65,7 +68,7 @@ export async function listReleases(
 				JSON.stringify({
 					error: "Invalid parameters, type must be 'nightly' or 'stable'.",
 				}),
-				{ status: 400 }
+				{ headers, status: 400 }
 			);
 		}
 	}
@@ -88,7 +91,7 @@ export async function listReleases(
 				error:
 					"Invalid parameters, offset and limit must be > 0 and limit must be less than 200.",
 			}),
-			{ status: 400 }
+			{ headers, status: 400 }
 		);
 	}
 
@@ -100,8 +103,6 @@ export async function listReleases(
 		offset
 	);
 	const body = JSON.stringify(releaseList);
-	// TODO - CORS
-	const headers = { "Content-type": "application/json" };
 	return new Response(body, { headers });
 }
 
@@ -111,6 +112,8 @@ export async function diffReleases(
 	ctx: ExecutionContext
 ): Promise<any> {
 	// TODO - update cache
+	// TODO - CORS
+	const headers = { "Content-type": "application/json" };
 	const baseVersion = req.query?.base;
 	const headVersion = req.query?.head;
 	if (baseVersion === undefined || headVersion === undefined) {
@@ -118,16 +121,12 @@ export async function diffReleases(
 			JSON.stringify({
 				error: "Invalid parameters, base and head must be provided.",
 			}),
-			{ status: 400 }
+			{ headers, status: 400 }
 		);
 	}
-	const latestNightly = await getLatestRelease(env.DB, ReleaseType.Nightly);
-	const latestStable = await getLatestRelease(env.DB, ReleaseType.Stable);
+	const diff = await getReleaseNotesForVersionRange(env.DB, baseVersion, headVersion);
 	const body = JSON.stringify({
-		nightly: latestNightly,
-		stable: latestStable,
+		diff
 	});
-	// TODO - CORS
-	const headers = { "Content-type": "application/json" };
 	return new Response(body, { headers });
 }

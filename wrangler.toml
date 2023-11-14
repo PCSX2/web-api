@@ -1,5 +1,5 @@
 main = "./src/index.ts"
-name = "worker-typescript-template"
+name = "api"
 compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2023-11-14"
 usage_model = "unbound"

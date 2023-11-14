@@ -1,6 +1,6 @@
 import { Router } from "itty-router";
 import { Env } from "..";
-import { latestReleases, listReleases, recentReleases } from "./v2/releases";
+import { latestReleases, listReleases, recentReleases, diffReleases } from "./v2/releases";
 import { githubReleaseWebhookEvent } from "./v2/webhooks";
 // import { bulkInsertReleases } from "../crons/cron-handler";
 
@@ -11,7 +11,7 @@ routerV2
 	// .get("/cron/bulkInsertReleases", bulkInsertReleases)
 	.get("/v2/releases/latest", latestReleases)
 	.get("/v2/releases/recent", recentReleases)
-	// .get("/v2/releases/diff", diffReleases)
+	.get("/v2/releases/diff", diffReleases)
 	// TODO - add searching capabilities, alongside frontend components
 	// .get("/v2/releases/search", searchReleases)
 	.get("/v2/releases", listReleases)
