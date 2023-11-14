@@ -28,15 +28,15 @@ export async function bulkInsertReleases(
 	// CF Workers have a subrequest limit of 1000 on unbound workers
 	// so we conservatively only allow 50% of that (500) to be inserted
 	// Get all releases from the main repo
-	const mainRepoReleases = await getAllReleasesForRepo(
-		client,
-		"PCSX2",
-		"pcsx2",
-		false
-	);
 
 	const releasesToEmplace = [];
 	// Mainline releases
+	// const mainRepoReleases = await getAllReleasesForRepo(
+	// 	client,
+	// 	"PCSX2",
+	// 	"pcsx2",
+	// 	false
+	// );
 	// for (const release of mainRepoReleases) {
 	// 	if (currentlyInsertedVersions.includes(release.version)) {
 	// 		continue;

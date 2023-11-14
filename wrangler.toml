@@ -1,6 +1,7 @@
 main = "./src/index.ts"
 name = "worker-typescript-template"
 compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2023-11-14"
 usage_model = "unbound"
 [[ d1_databases ]]
 binding = "DB"

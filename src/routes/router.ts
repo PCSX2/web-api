@@ -8,10 +8,10 @@ const routerV2 = Router();
 
 // Add GET endpoints for cron endpoints when running locally to provide an easy way to test
 routerV2
-	// .get("/cron/bulkInsertReleases", bulkInsertReleases)
+	.get("/cron/bulkInsertReleases", bulkInsertReleases)
 	.get("/v2/releases/latest", latestReleases)
 	.get("/v2/releases/recent", recentReleases)
-	.get("/v2/releases/diff", diffReleases)
+	// .get("/v2/releases/diff", diffReleases)
 	// TODO - add searching capabilities, alongside frontend components
 	// .get("/v2/releases/search", searchReleases)
 	.get("/v2/releases", listReleases)
