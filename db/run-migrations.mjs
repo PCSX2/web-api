@@ -19,7 +19,7 @@ const run = async () => {
 		} else {
 			console.log("Running migration", file);
 		}
-		await execute(`wrangler d1 execute test-database --yes --local --file=./db/migrations/${file}`);
+		await execute(`wrangler d1 execute release-api-prod --yes --local --file=./db/migrations/${file}`);
 	}
 };
 
