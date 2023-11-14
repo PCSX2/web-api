@@ -1,7 +1,0 @@
-dist
-node_modules
-transpiled
-/.idea/
-.env
-.dev.vars
-.wrangler/
