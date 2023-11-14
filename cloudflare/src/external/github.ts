@@ -67,6 +67,7 @@ export function getAssetsFromRelease(
 					platform: ReleasePlatform.Windows,
 					tags: ["32bit"],
 					downloadCount: asset.download_count,
+					downloadSizeBytes: asset.size,
 				};
 			}
 		);
@@ -93,8 +94,43 @@ export function getAssetsFromRelease(
 			platform: platform,
 			tags: tags,
 			downloadCount: asset.download_count,
+			downloadSizeBytes: asset.size,
 		};
 	});
+}
+
+export function serializeGithubRelease(
+	release: any,
+	legacyNaming: boolean
+): Release | undefined {
+	// Skip draft releases
+	if (release.draft) {
+		return undefined;
+	}
+
+	let releaseVersion = release.tag_name;
+	if (releaseVersion.charAt(0) === "v") {
+		releaseVersion = releaseVersion.substring(1);
+	}
+	const releaseVersionIntegral = semverTagToIntegral(releaseVersion);
+	if (releaseVersionIntegral === undefined) {
+		console.log(`invalid tag found - '${release.tag_name}' ignoring release`);
+		return undefined;
+	}
+
+	return {
+		version: releaseVersion,
+		versionIntegral: releaseVersionIntegral,
+		publishedTimestamp: release.published_at,
+		createdTimestamp: release.created_at,
+		githubReleaseId: release.id,
+		githubUrl: release.html_url,
+		releaseType: release.prerelease ? ReleaseType.Nightly : ReleaseType.Stable,
+		nextAudit: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from today
+		nextAuditDays: 7,
+		notes: release.body,
+		assets: getAssetsFromRelease(release, legacyNaming),
+	};
 }
 
 export async function getAllReleasesForRepo(
@@ -102,8 +138,7 @@ export async function getAllReleasesForRepo(
 	owner: string,
 	repo: string,
 	legacyNaming: boolean
-) {
-	// log.info("refreshing main release cache", { cid: cid, cacheType: "main" });
+): Promise<Release[]> {
 	const githubReleases = await octokit.paginate(
 		octokit.rest.repos.listReleases,
 		{
@@ -116,35 +151,11 @@ export async function getAllReleasesForRepo(
 	// Convert the github release into our internal format
 	const releases: Release[] = [];
 	for (const release of githubReleases) {
-		// Skip draft releases
-		if (release.draft) {
-			continue;
+		const serializedRelease = serializeGithubRelease(release, legacyNaming);
+		if (serializedRelease !== undefined) {
+			releases.push(serializedRelease);
 		}
-
-		let releaseVersion = release.tag_name;
-		if (releaseVersion.charAt(0) === "v") {
-			releaseVersion = releaseVersion.substring(1);
-		}
-		const releaseVersionIntegral = semverTagToIntegral(releaseVersion);
-		if (releaseVersionIntegral === undefined) {
-			console.log(`invalid tag found - '${release.tag_name}' ignoring release`);
-			continue;
-		}
-
-		releases.push({
-			version: releaseVersion,
-			versionIntegral: releaseVersionIntegral,
-			publishedTimestamp: release.published_at,
-			createdTimestamp: release.created_at,
-			github_url: release.html_url,
-			type: release.prerelease ? ReleaseType.Nightly : ReleaseType.Stable,
-			notes: release.body, // TODO - strip tags
-			assets: getAssetsFromRelease(release, legacyNaming),
-			channel: null,
-		});
 	}
 
 	return releases;
-
-	// log.info("main release cache refreshed", { cid: cid, cacheType: "main" });
 }

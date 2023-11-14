@@ -1,5 +1,3 @@
-import { isNumeric } from "../utils/release-util";
-
 export enum ReleaseType {
 	Stable = "Stable",
 	Nightly = "Nightly",
@@ -16,19 +14,26 @@ export interface ReleaseAsset {
 	platform: ReleasePlatform;
 	tags: string[];
 	downloadCount: number;
+	downloadSizeBytes: number;
 }
 
 export interface Release {
 	internalId?: number;
 	version: string;
 	versionIntegral: number;
-	createdTimestamp: string;
-	github_url: string;
-	type: ReleaseType;
 	publishedTimestamp?: string | null;
+	createdTimestamp: string;
+	githubReleaseId: number;
+	githubUrl: string;
+	releaseType: ReleaseType;
+	nextAudit: string;
+	nextAuditDays: number;
 	notes?: string | null;
 	assets: ReleaseAsset[];
-	channel?: string | null;
+}
+
+function isNumeric(val: any): boolean {
+	return !(val instanceof Array) && val - parseFloat(val) + 1 >= 0;
 }
 
 export function semverTagToIntegral(version: string): number | undefined {

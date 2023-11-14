@@ -2,8 +2,14 @@ import { Env } from "..";
 import { createGithubClient, getAllReleasesForRepo } from "../external/github";
 import { getAllReleasedVersions, emplaceReleases } from "../storage/d1";
 
-// TODO - also update download counts
-export async function insertAnyMissingReleases(
+// This function is mainly used for the initial seeding of the database
+// under normal operation we respond to webhooks (create releases as they happen)
+// or on the rare occassion, pick up a missed release in the last few days.
+//
+// If someone makes or deprecates a release from a long long time ago, this
+// is such a rare thing to happen that it shouldn't bog down the day-to-day.
+// Add a special "check everything" job that can be manually triggered.
+export async function bulkInsertReleases(
 	req: any,
 	env: Env,
 	ctx: ExecutionContext
@@ -31,13 +37,13 @@ export async function insertAnyMissingReleases(
 
 	const releasesToEmplace = [];
 	// Mainline releases
-	for (const release of mainRepoReleases) {
-		if (currentlyInsertedVersions.includes(release.version)) {
-			continue;
-		}
-		releasesToEmplace.push(release);
-	}
-	// TODO - grab these in parallel with the above
+	// for (const release of mainRepoReleases) {
+	// 	if (currentlyInsertedVersions.includes(release.version)) {
+	// 		continue;
+	// 	}
+	// 	releasesToEmplace.push(release);
+	// }
+	// NOTE - these are not actively checked anymore, they are archived for a reason!
 	const archiveRepoReleases = await getAllReleasesForRepo(
 		client,
 		"PCSX2",

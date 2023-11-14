@@ -1,12 +1,9 @@
 import { handleRequest } from "./routes/router";
 
-// These initial Types are based on bindings that don't exist in the project yet,
-// you can follow the links to learn how to implement them.
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Env {
 	DB: D1Database;
 	GITHUB_TOKEN: string;
+	GITHUB_WEBHOOK_SECRET: string;
 }
 
 const worker = {

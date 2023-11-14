@@ -1,13 +1,21 @@
 import { Router } from "itty-router";
 import { Env } from "..";
-import { insertAnyMissingReleases } from "../crons/cron-handler";
-import { versionsLatest } from "./v2/versions";
+import { latestReleases, listReleases, recentReleases } from "./v2/releases";
+import { githubReleaseWebhookEvent } from "./v2/webhooks";
+import { bulkInsertReleases } from "../crons/cron-handler";
 
 const routerV2 = Router();
 
+// Add GET endpoints for cron endpoints when running locally to provide an easy way to test
 routerV2
-	.get("/cron/insertAnyMissingReleases", insertAnyMissingReleases)
-	.get("/v2/versions/latest", versionsLatest)
+	// .get("/cron/bulkInsertReleases", bulkInsertReleases)
+	.get("/v2/releases/latest", latestReleases)
+	.get("/v2/releases/recent", recentReleases)
+	.get("/v2/releases/diff", diffReleases)
+	// TODO - add searching capabilities, alongside frontend components
+	// .get("/v2/releases/search", searchReleases)
+	.get("/v2/releases", listReleases)
+	.post("/v2/webhooks/githubReleaseEvent", githubReleaseWebhookEvent)
 	.get("*", () => new Response("Not found", { status: 404 }));
 
 export const handleRequest = (
