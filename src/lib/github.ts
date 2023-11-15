@@ -9,6 +9,7 @@ function hexToBytes(hex: string) {
 		bytes[index] = b;
 		index += 1;
 	}
+
 	return bytes;
 }
 
@@ -18,23 +19,24 @@ export async function verifySignedGithubWebhookPayload(
 	payload: string,
 	header: string,
 	secret: string
-) {
-	const parts = header.split("=");
-	const sigHex = parts[1];
+): Promise<boolean> {
+	const sigHex = header.split("=")[1];
 
-	const algorithm = { name: "HMAC", hash: { name: "SHA-256" } };
-
-	const keyBytes = encoder.encode(secret);
-	const extractable = false;
 	const key = await crypto.subtle.importKey(
 		"raw",
-		keyBytes,
-		algorithm,
-		extractable,
-		["sign", "verify"]
+		encoder.encode(secret),
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["verify"]
 	);
 
 	const sigBytes = hexToBytes(sigHex);
-	const dataBytes = encoder.encode(payload);
-	return await crypto.subtle.verify(algorithm.name, key, sigBytes, dataBytes);
+	const verified = await crypto.subtle.verify(
+		"HMAC",
+		key,
+		sigBytes,
+		encoder.encode(payload)
+	);
+
+	return verified;
 }

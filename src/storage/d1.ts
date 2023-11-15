@@ -1,4 +1,9 @@
-import { Release, ReleaseAsset, ReleaseType, semverTagToIntegral } from "../lib/releases";
+import {
+	Release,
+	ReleaseAsset,
+	ReleaseType,
+	semverTagToIntegral,
+} from "../lib/releases";
 
 export async function getAllReleasedVersions(
 	d1: D1Database
@@ -55,6 +60,36 @@ export async function emplaceReleases(db: D1Database, releases: Release[]) {
 		console.log({
 			message: e.message,
 			cause: e.cause.message,
+		});
+	}
+}
+
+export async function insertNewRelease(db: D1Database, release: Release) {
+	const releaseInsert = db.prepare(
+		"INSERT INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);"
+	);
+	try {
+		const preparedStatement = releaseInsert.bind(
+			release.version,
+			release.versionIntegral,
+			release.publishedTimestamp,
+			release.createdTimestamp,
+			release.githubReleaseId,
+			release.githubUrl,
+			release.releaseType,
+			release.nextAudit,
+			release.nextAuditDays,
+			0,
+			release.notes,
+			JSON.stringify(release.assets)
+		);
+		console.log("prepared!");
+		await preparedStatement.run();
+		console.log("no exception!");
+	} catch (e: any) {
+		console.log("EXCEPTION!");
+		console.error({
+			message: e.message,
 		});
 	}
 }
@@ -226,8 +261,6 @@ export async function getReleaseNotesForVersionRange(
 		headVersion = headVersion.substring(1);
 	}
 	const headVersionIntegral = semverTagToIntegral(headVersion);
-
-
 
 	const latestReleaseQuery = db.prepare(
 		"SELECT notes FROM releases WHERE archived = 0 AND version_integral >= ? AND version_integral <= ? ORDER BY version_integral DESC;"

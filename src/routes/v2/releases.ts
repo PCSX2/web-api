@@ -1,6 +1,6 @@
 import { Request } from "itty-router";
 import { Env } from "../..";
-import { Release, ReleaseType } from "../../lib/releases";
+import { ReleaseType } from "../../lib/releases";
 import {
 	getLatestRelease,
 	getRecentReleases,
@@ -124,9 +124,13 @@ export async function diffReleases(
 			{ headers, status: 400 }
 		);
 	}
-	const diff = await getReleaseNotesForVersionRange(env.DB, baseVersion, headVersion);
+	const diff = await getReleaseNotesForVersionRange(
+		env.DB,
+		baseVersion,
+		headVersion
+	);
 	const body = JSON.stringify({
-		diff
+		diff,
 	});
 	return new Response(body, { headers });
 }
