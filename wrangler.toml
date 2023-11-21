@@ -2,7 +2,6 @@ main = "./src/index.ts"
 name = "api"
 compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2023-11-14"
-usage_model = "unbound"
 account_id = "7049738c6e23ede87a178f2a56d15317"
 [[ d1_databases ]]
 binding = "DB"

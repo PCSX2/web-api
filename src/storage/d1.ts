@@ -166,15 +166,13 @@ export async function getLatestRelease(
 			release = {
 				internalId: row.release_id,
 				version: row.version,
-				versionIntegral: row.published_timestamp,
-				createdTimestamp: row.created_timestamp,
+				versionIntegral: row.version_integral,
+				publishedTimestamp: row.published_timestamp,
 				githubUrl: row.github_url,
 				githubReleaseId: row.github_release_id,
 				releaseType: row.type,
 				notes: row.notes,
 				assets: JSON.parse(row.assets),
-				nextAudit: row.next_audit,
-				nextAuditDays: row.next_audit_days,
 			};
 		}
 	}
@@ -198,15 +196,13 @@ export async function getRecentReleases(
 		releases.push({
 			internalId: row.release_id,
 			version: row.version,
-			versionIntegral: row.published_timestamp,
-			createdTimestamp: row.created_timestamp,
+			versionIntegral: row.version_integral,
+			publishedTimestamp: row.published_timestamp,
 			githubUrl: row.github_url,
 			githubReleaseId: row.github_release_id,
 			releaseType: row.type,
 			notes: row.notes,
 			assets: JSON.parse(row.assets),
-			nextAudit: row.next_audit,
-			nextAuditDays: row.next_audit_days,
 		});
 	}
 	return releases;
