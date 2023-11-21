@@ -20,7 +20,6 @@ export async function latestReleases(
 		nightly: latestNightly,
 		stable: latestStable,
 	});
-	// TODO - CORS
 	const headers = { "Content-type": "application/json" };
 	return new Response(body, { headers });
 }
@@ -37,12 +36,14 @@ export async function recentReleases(
 		nightly: latestNightly,
 		stable: latestStable,
 	});
-	// TODO - CORS
 	const headers = { "Content-type": "application/json" };
 	const resp = new Response(body, { headers });
 	const cache = caches.default;
 	ctx.waitUntil(
-		cache.put("cache.pcsx2.workers.dev/v1/recentReleases", resp.clone())
+		cache.put(
+			"https://cache.pcsx2.workers.dev/v1/releases/recent",
+			resp.clone()
+		)
 	);
 	return resp;
 }
@@ -54,7 +55,6 @@ export async function listReleases(
 ): Promise<any> {
 	let releaseType: ReleaseType = ReleaseType.Nightly;
 	const type: string | undefined = req.query?.type;
-	// TODO - CORS
 	const headers = { "Content-type": "application/json" };
 	if (type === undefined) {
 		return new Response(
@@ -117,7 +117,6 @@ export async function diffReleases(
 	ctx: ExecutionContext
 ): Promise<any> {
 	// TODO - update cache
-	// TODO - CORS
 	const headers = { "Content-type": "application/json" };
 	const baseVersion = req.query?.base;
 	const headVersion = req.query?.head;
