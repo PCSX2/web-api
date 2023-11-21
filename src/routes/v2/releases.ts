@@ -13,7 +13,7 @@ export async function latestReleases(
 	env: Env,
 	ctx: ExecutionContext
 ): Promise<any> {
-	// TODO - update cache
+	// TODO - update D1 request cache
 	const latestNightly = await getLatestRelease(env.DB, ReleaseType.Nightly);
 	const latestStable = await getLatestRelease(env.DB, ReleaseType.Stable);
 	const body = JSON.stringify({
@@ -30,7 +30,7 @@ export async function recentReleases(
 	env: Env,
 	ctx: ExecutionContext
 ): Promise<any> {
-	// TODO - update cache
+	// TODO - update D1 request cache
 	const latestNightly = await getRecentReleases(env.DB, ReleaseType.Nightly);
 	const latestStable = await getRecentReleases(env.DB, ReleaseType.Stable);
 	const body = JSON.stringify({
@@ -39,7 +39,12 @@ export async function recentReleases(
 	});
 	// TODO - CORS
 	const headers = { "Content-type": "application/json" };
-	return new Response(body, { headers });
+	const resp = new Response(body, { headers });
+	const cache = caches.default;
+	ctx.waitUntil(
+		cache.put("cache.pcsx2.workers.dev/v1/recentReleases", resp.clone())
+	);
+	return resp;
 }
 
 export async function listReleases(

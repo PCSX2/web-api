@@ -49,15 +49,15 @@ export async function githubReleaseWebhookEvent(
 	if (releaseAction === "published" && !isDraft) {
 		const release = serializeGithubRelease(body.release, false);
 		if (release !== undefined) {
-			const result = insertNewRelease(env.DB, release);
+			const result = await insertNewRelease(env.DB, release);
 			console.log("returned!");
 		}
 	} else if (releaseAction === "deleted") {
-		archiveRelease(env.DB, body.release.tag_name);
+		await archiveRelease(env.DB, body.release.tag_name);
 	} else if (releaseAction === "edited" && !isDraft) {
 		const release = serializeGithubRelease(body.release, false);
 		if (release !== undefined) {
-			editOrInsertRelease(env.DB, release);
+			await editOrInsertRelease(env.DB, release);
 		}
 	} else {
 		console.log(`Unhandled release action: ${releaseAction}`);
