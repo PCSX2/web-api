@@ -1,3 +1,4 @@
+import { RequestLike } from "itty-router";
 import { Env } from "..";
 import { createGithubClient, getAllReleasesForRepo } from "../external/github";
 import { getAllReleasedVersions, emplaceReleases } from "../storage/d1";
@@ -10,7 +11,8 @@ import { getAllReleasedVersions, emplaceReleases } from "../storage/d1";
 // is such a rare thing to happen that it shouldn't bog down the day-to-day.
 // Add a special "check everything" job that can be manually triggered.
 export async function bulkInsertReleases(
-	req: any,
+	req: RequestLike,
+	cfRequest: Request,
 	env: Env,
 	ctx: ExecutionContext
 ): Promise<any> {

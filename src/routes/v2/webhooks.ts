@@ -50,7 +50,6 @@ export async function githubReleaseWebhookEvent(
 		const release = serializeGithubRelease(body.release, false);
 		if (release !== undefined) {
 			const result = await insertNewRelease(env.DB, release);
-			console.log("returned!");
 		}
 	} else if (releaseAction === "deleted") {
 		await archiveRelease(env.DB, body.release.tag_name);

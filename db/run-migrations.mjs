@@ -24,3 +24,7 @@ const run = async () => {
 };
 
 run();
+
+// wrangler d1 execute release-api-prod --command "SELECT * FROM releases WHERE release_type = 'Nightly' AND archived = 0 ORDER BY version_integral DESC LIMIT 100 OFFSET 0;" --json
+// wrangler d1 execute release-api-prod --command "SELECT * FROM releases WHERE release_type = 'Nightly' AND archived = 0 AND version_integral < 1000007004111 ORDER BY version_integral DESC LIMIT 100;" --json
+// wrangler d1 execute release-api-prod --command "SELECT COUNT(*) as count FROM releases WHERE release_type = 'Nightly' AND archived = 0;" --json

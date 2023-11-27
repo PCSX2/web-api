@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `releases` (
   `github_release_id` INTEGER not null,
   `github_url` TEXT not null,
   `release_type` TEXT not null,
-  `next_audit` TEXT not null, -- timestamp
+  `next_audit` TEXT not null,
   `next_audit_days` INTEGER not null,
   `archived` INTEGER DEFAULT 0,
   `notes` TEXT null,
@@ -20,9 +20,7 @@ CREATE TABLE IF NOT EXISTS `releases` (
     -- `download_size_bytes` integer null
 );
 CREATE UNIQUE INDEX IF NOT EXISTS releases_index_version ON releases (version);
-CREATE UNIQUE INDEX IF NOT EXISTS releases_index_version_normalized ON releases (version_integral);
-CREATE UNIQUE INDEX IF NOT EXISTS releases_index_github_release_id ON releases (github_release_id);
-CREATE INDEX IF NOT EXISTS releases_index_created_timestamp ON releases (created_timestamp);
-CREATE INDEX IF NOT EXISTS releases_index_release_type ON releases (release_type);
-CREATE INDEX IF NOT EXISTS releases_index_archived ON releases (archived);
-CREATE INDEX IF NOT EXISTS releases_index_notes ON releases (notes);
+-- For list query optimization
+CREATE INDEX IF NOT EXISTS idx_releases_type_archived_version_integral ON releases (release_type, archived, version_integral DESC);
+-- For changelog query optimization
+CREATE INDEX IF NOT EXISTS idx_releases_archived_version_integral ON releases (archived, version_integral DESC);
