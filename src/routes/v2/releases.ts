@@ -73,11 +73,12 @@ export async function recentReleases(
 		};
 		headers = appendCorsHeaders(cfRequest.headers.get("origin"), headers);
 		const resp = new Response(body, { headers });
-		// NOTE - cache in a custom page rule (this avoids a worker invocation)
+		// NOTE - cache in a custom page rule (this helps avoid a worker invocation)
 		const cacheKey = new Request(
 			"https://cache.pcsx2.net/v1/releases/recent",
 			req
 		);
+		console.log("updating page rule");
 		ctx.waitUntil(cache.put(cacheKey, resp.clone()));
 		// Cache for 30 mins max
 		// TODO - if we had a more fancy CF tier (enterprise), we could purge the cache appropriately

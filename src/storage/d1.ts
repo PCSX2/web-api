@@ -176,7 +176,7 @@ export async function getRecentReleases(
 	type: ReleaseType
 ): Promise<Release[] | undefined> {
 	const recentReleasesQuery = db.prepare(
-		"SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 100;"
+		"SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT 200;"
 	);
 	const queryResults: D1Result = await recentReleasesQuery.bind(type).all();
 
