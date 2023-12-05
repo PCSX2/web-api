@@ -33,32 +33,32 @@ export async function bulkInsertReleases(
 
 	const releasesToEmplace = [];
 	// Mainline releases
-	const mainRepoReleases = await getAllReleasesForRepo(
-		client,
-		"PCSX2",
-		"pcsx2",
-		false
-	);
-	for (const release of mainRepoReleases) {
-		if (currentlyInsertedVersions.includes(release.version)) {
-			continue;
-		}
-		releasesToEmplace.push(release);
-	}
-	// NOTE - these are not actively checked anymore, they are archived for a reason!
-	// const archiveRepoReleases = await getAllReleasesForRepo(
+	// const mainRepoReleases = await getAllReleasesForRepo(
 	// 	client,
 	// 	"PCSX2",
-	// 	"archive",
-	// 	true
+	// 	"pcsx2",
+	// 	false
 	// );
-	// // Archived releases
-	// for (const release of archiveRepoReleases) {
+	// for (const release of mainRepoReleases) {
 	// 	if (currentlyInsertedVersions.includes(release.version)) {
 	// 		continue;
 	// 	}
 	// 	releasesToEmplace.push(release);
 	// }
+	// NOTE - these are not actively checked anymore, they are archived for a reason!
+	const archiveRepoReleases = await getAllReleasesForRepo(
+		client,
+		"PCSX2",
+		"archive",
+		true
+	);
+	// Archived releases
+	for (const release of archiveRepoReleases) {
+		if (currentlyInsertedVersions.includes(release.version)) {
+			continue;
+		}
+		releasesToEmplace.push(release);
+	}
 	// Insert the releases
 	await emplaceReleases(env.DB, releasesToEmplace);
 

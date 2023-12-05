@@ -7,7 +7,7 @@ import {
 	diffReleases,
 } from "./v2/releases";
 import { githubReleaseWebhookEvent } from "./v2/webhooks";
-// import { bulkInsertReleases } from "../crons/cron-handler";
+import { bulkInsertReleases } from "../crons/cron-handler";
 
 const { preflight, corsify } = createCors();
 
@@ -17,7 +17,7 @@ const routerV2 = Router();
 routerV2
 	// embed preflight upstream to handle all OPTIONS requests
 	.all("*", preflight)
-	// .get("/cron/bulkInsertReleases", bulkInsertReleases)
+	.get("/cron/bulkInsertReleases", bulkInsertReleases)
 	.get("/v2/releases/latest", latestReleases)
 	.get("/v2/releases/recent", recentReleases)
 	.get("/v2/releases/changelog", diffReleases)

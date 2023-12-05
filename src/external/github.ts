@@ -52,29 +52,34 @@ type GithubReleaseData =
 export function getAssetsFromRelease(
 	release: GithubReleaseData,
 	legacyRepo: boolean
-): ReleaseAsset[] {
+): Record<ReleasePlatform, ReleaseAsset[]> {
+	const assets: Record<ReleasePlatform, ReleaseAsset[]> = {
+		[ReleasePlatform.Windows]: [],
+		[ReleasePlatform.MacOS]: [],
+		[ReleasePlatform.Linux]: [],
+	};
 	if (!("assets" in release)) {
-		return [];
+		return assets;
 	}
 
 	// NOTE - pre-releases from the legacy system don't follow the new naming scheme
 	// additionally, there were only Windows 32bit builds available from it
 	if (legacyRepo && release.prerelease) {
-		return release.assets.map(
+		assets[ReleasePlatform.Windows] = release.assets.map(
 			(asset: components["schemas"]["release-asset"]) => {
 				return {
 					downloadUrl: asset.browser_download_url,
-					platform: ReleasePlatform.Windows,
 					tags: ["32bit"],
 					downloadCount: asset.download_count,
 					downloadSizeBytes: asset.size,
 				};
 			}
 		);
+		return assets;
 	}
 
 	// Handle legacy stable releases (TODO - will these end up being the same as normal!?!)
-	return release.assets.map((asset: components["schemas"]["release-asset"]) => {
+	release.assets.forEach((asset: components["schemas"]["release-asset"]) => {
 		// Determine the platform
 		let platform = ReleasePlatform.Windows;
 		if (asset.name.includes("linux")) {
@@ -89,14 +94,14 @@ export function getAssetsFromRelease(
 			tags = filenameMatches[0][1].split("-").slice(3);
 		}
 		// Finalize asset
-		return {
+		assets[platform].push({
 			downloadUrl: asset.browser_download_url,
-			platform: platform,
 			tags: tags,
 			downloadCount: asset.download_count,
 			downloadSizeBytes: asset.size,
-		};
+		});
 	});
+	return assets;
 }
 
 export function serializeGithubRelease(

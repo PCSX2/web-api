@@ -61,7 +61,7 @@ export async function emplaceReleases(db: D1Database, releases: Release[]) {
 
 export async function insertNewRelease(db: D1Database, release: Release) {
 	const releaseInsert = db.prepare(
-		"INSERT INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);"
+		"INSERT INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);",
 	);
 	try {
 		const preparedStatement = releaseInsert.bind(
@@ -89,7 +89,7 @@ export async function insertNewRelease(db: D1Database, release: Release) {
 export async function editOrInsertRelease(db: D1Database, release: Release) {
 	const batches: D1PreparedStatement[] = [];
 	const releaseInsert = db.prepare(
-		"INSERT OR IGNORE INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
+		"INSERT INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
 	);
 	batches.push(
 		releaseInsert.bind(

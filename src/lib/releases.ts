@@ -11,7 +11,6 @@ export enum ReleasePlatform {
 
 export interface ReleaseAsset {
 	downloadUrl: string;
-	platform: ReleasePlatform;
 	tags: string[];
 	downloadCount: number;
 	downloadSizeBytes: number;
@@ -29,7 +28,7 @@ export interface Release {
 	nextAudit: string;
 	nextAuditDays: number;
 	notes?: string | null;
-	assets: ReleaseAsset[];
+	assets: Record<ReleasePlatform, ReleaseAsset[]>;
 }
 
 function isNumeric(val: any): boolean {
