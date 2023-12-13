@@ -6,9 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+hex = "0.4.3"
 rocket = { version = "0.5.0", features = ["json"] }
 sqlx = { version = "0.7.3", features = ["runtime-tokio-native-tls", "sqlite"] }
 dotenvy = "0.15"
-cached = "0.46.1"
 regex = "1.5"
 lazy_static = "1.4"
+sha2 = "0.10.8"
+hmac = "0.12.1"
+octocrab = "0.32.0"
+chrono = "0.4.31"
+fern = "0.6.2"
+log = "0.4.20"
