@@ -29,6 +29,18 @@ pub struct ReleaseRow {
 }
 
 impl ReleaseRow {
+    // TODO - something used in legacy releases:
+    // in the legacy releases
+    // if (release.body.includes("DATE_OVERRIDE")) {
+    //     const regexp = /DATE_OVERRIDE:\s?(\d{4}-\d{2}-\d{2})/g;
+    //     const match = Array.from(
+    //       release.body.matchAll(regexp),
+    //       (m) => m[1]
+    //     );
+    //     if (match.length > 0) {
+    //       createdAt = `${match[0]}T12:00:00.000Z`;
+    //     }
+    //   }
     pub fn from_github(github_release: &Release) -> Self {
         let mut assets: HashMap<String, Vec<ReleaseAsset>> = HashMap::new();
         github_release.assets.iter().for_each(|asset| {

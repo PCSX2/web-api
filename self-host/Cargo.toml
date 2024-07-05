@@ -3,8 +3,6 @@ name = "pcsx2-api"
 version = "2.0.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 hex = "0.4.3"
 rocket = { version = "0.5.0", features = ["json"] }
@@ -18,3 +16,6 @@ octocrab = "0.32.0"
 chrono = "0.4.31"
 fern = "0.6.2"
 log = "0.4.20"
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.

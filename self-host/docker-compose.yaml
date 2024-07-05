@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  pcsx2-api:
+    container_name: api
+    image: pcsx2-api:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.env:/app/.env
+      - ./Rocket.toml:/app/Rocket.toml
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./app.log:/app/app.log
+      - ./error.log:/app/error.log
