@@ -1,9 +1,8 @@
-// TODO - to be removed asap
+// TODO V1 - to be removed asap
 
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use log::debug;
 use regex::Regex;
 use rocket::serde::json::serde_json;
 use rocket::{
@@ -21,7 +20,7 @@ use crate::{
     storage::{models::ReleaseRow, sqlite},
 };
 
-use super::models::{Release, ReleaseAsset};
+use super::models::ReleaseAsset;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
@@ -217,7 +216,6 @@ pub async fn list_stable_releases(
     offset: Option<i32>,
     pageSize: Option<i32>,
 ) -> Result<CachedResponse<Json<StableReleasesResponse>>, Status> {
-    debug!("hello world");
     let mut final_page_size = 25;
     if let Some(size) = pageSize {
         final_page_size = size.clamp(0, 100);
@@ -228,17 +226,13 @@ pub async fn list_stable_releases(
     }
 
     let db_releases = list_releases_with_offset(db, final_offset, "Stable", final_page_size).await;
-    debug!("hello world a");
     let total_release_count = get_total_count_of_release_type(db, "Stable").await;
-    debug!("hello world b");
-    debug!("releases: {:?}", db_releases);
     match db_releases {
         Ok(db_releases) => {
             let releases = db_releases
                 .iter()
                 .map(|db_release| ReleaseV1::from_v2(db_release))
                 .collect();
-            debug!("hello world c");
             Ok(CachedResponse::new(
                 Json(StableReleasesResponse {
                     data: releases,

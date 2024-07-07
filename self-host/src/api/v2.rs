@@ -109,7 +109,7 @@ pub async fn get_release_changelog(
                     "public, max-age=3600".to_owned(),
                 ))
             }
-            Err(err) => Err(Status::InternalServerError),
+            Err(_) => Err(Status::InternalServerError),
         }
     } else {
         Err(Status::BadRequest)
@@ -167,7 +167,6 @@ pub async fn handle_github_webhook_release_event(
     db: &State<Pool<Sqlite>>,
 ) -> Status {
     // The GithubWebhookEvent guard validates that it's a signed webhook payload
-    // TODO - handle errors
     match event.0.specific {
         WebhookEventPayload::Release(payload) => match payload.action {
             ReleaseWebhookEventAction::Published => {
@@ -175,28 +174,53 @@ pub async fn handle_github_webhook_release_event(
                     <octocrab::models::repos::Release as Deserialize>::deserialize(payload.release)
                         .unwrap();
                 let db_release = ReleaseRow::from_github(&release_info);
-                let db_result = sqlite::insert_new_release(db, &db_release).await;
+                if db_release.is_none() {
+                    log::error!("Unable to parse release, ignoring");
+                    return Status::InternalServerError;
+                }
+                let db_result = sqlite::insert_new_release(db, &db_release.unwrap()).await;
+                if db_result.is_err() {
+                    log::error!("Error occured when inserting new release: {:?}", db_result);
+                    return Status::InternalServerError;
+                }
             }
             ReleaseWebhookEventAction::Edited => {
                 let release_info =
                     <octocrab::models::repos::Release as Deserialize>::deserialize(payload.release)
                         .unwrap();
                 let db_release = ReleaseRow::from_github(&release_info);
-                let db_result = sqlite::update_existing_release(db, &db_release).await;
+                if db_release.is_none() {
+                    log::error!("Unable to parse release, ignoring");
+                    return Status::InternalServerError;
+                }
+                let db_result = sqlite::update_existing_release(db, &db_release.unwrap()).await;
+                if db_result.is_err() {
+                    log::error!("Error occured when inserting new release: {:?}", db_result);
+                    return Status::InternalServerError;
+                }
             }
             ReleaseWebhookEventAction::Deleted => {
                 let release_info =
                     <octocrab::models::repos::Release as Deserialize>::deserialize(payload.release)
                         .unwrap();
                 let db_release = ReleaseRow::from_github(&release_info);
-                let db_result = sqlite::archive_release(db, &db_release).await;
+                if db_release.is_none() {
+                    log::error!("Unable to parse release, ignoring");
+                    return Status::InternalServerError;
+                }
+                let db_result = sqlite::archive_release(db, &db_release.unwrap()).await;
+                if db_result.is_err() {
+                    log::error!("Error occured when inserting new release: {:?}", db_result);
+                    return Status::InternalServerError;
+                }
             }
             _ => {
                 // do nothing
+                log::warn!("Unexpected event type: {:?}", payload.action);
             }
         },
         _ => {
-            // TODO - return error, unexpected event type!
+            log::warn!("Unexpected event type");
         }
     }
     Status::Accepted

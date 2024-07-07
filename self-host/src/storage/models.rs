@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::{Duration, Utc};
 use octocrab::models::repos::Release;
 use regex::Regex;
+use rocket::form::validate::Contains;
 use rocket::serde::json::serde_json;
 use rocket::serde::Serialize;
 use sqlx::FromRow;
@@ -29,19 +30,7 @@ pub struct ReleaseRow {
 }
 
 impl ReleaseRow {
-    // TODO - something used in legacy releases:
-    // in the legacy releases
-    // if (release.body.includes("DATE_OVERRIDE")) {
-    //     const regexp = /DATE_OVERRIDE:\s?(\d{4}-\d{2}-\d{2})/g;
-    //     const match = Array.from(
-    //       release.body.matchAll(regexp),
-    //       (m) => m[1]
-    //     );
-    //     if (match.length > 0) {
-    //       createdAt = `${match[0]}T12:00:00.000Z`;
-    //     }
-    //   }
-    pub fn from_github(github_release: &Release) -> Self {
+    pub fn from_github(github_release: &Release) -> Option<Self> {
         let mut assets: HashMap<String, Vec<ReleaseAsset>> = HashMap::new();
         github_release.assets.iter().for_each(|asset| {
             let mut platform = "Windows";
@@ -82,31 +71,56 @@ impl ReleaseRow {
                 });
         });
 
-        Self {
+        // Date override support
+        let mut release_date_override = None;
+        if github_release.body.is_some() && github_release.body.contains("DATE_OVERRIDE") {
+            let regexp = Regex::new(r"DATE_OVERRIDE:\s?(\d{4}-\d{2}-\d{2})").unwrap();
+            let release_body = github_release.body.clone().unwrap_or("".to_string());
+            let matches: Vec<&str> = regexp.captures_iter(&release_body)
+                .filter_map(|cap| cap.get(1).map(|m| m.as_str()))
+                .collect();
+            if let Some(first_match) = matches.first() {
+                release_date_override = Some(format!("{}T12:00:00.000Z", first_match));
+            }
+        }
+
+        let semver_integral = semver_tag_to_integral(github_release.tag_name.as_str());
+        if semver_integral.is_none() {
+            log::error!("Unable to parse tag into semver integral");
+            return None;
+        }
+
+        Some(Self {
             id: -1,
             version: github_release.tag_name.clone(),
-            version_integral: semver_tag_to_integral(github_release.tag_name.as_str()).unwrap(), // TODO - handle error
+            version_integral: semver_integral.unwrap(),
             published_timestamp: match &github_release.published_at {
                 Some(published_at) => Some(published_at.to_rfc3339()),
                 None => None,
             },
             created_timestamp: match &github_release.created_at {
-                Some(created_at) => Some(created_at.to_rfc3339()),
+                Some(created_at) => {
+                    if release_date_override.is_some() {
+                        release_date_override
+                    } else {
+                        Some(created_at.to_rfc3339())
+                    }
+                },
                 None => None,
             },
             github_release_id: github_release.id.0 as i64,
             github_url: github_release.html_url.to_string(),
             release_type: if github_release.prerelease {
-                "Nightly".to_owned()
+                "nightly".to_owned()
             } else {
-                "Stable".to_owned()
+                "stable".to_owned()
             },
             next_audit: (Utc::now() + Duration::days(7)).to_rfc3339(),
             next_audit_days: 7,
             archived: 0,
             notes: github_release.body.clone(),
             assets: serde_json::to_string(&assets).unwrap(),
-        }
+        })
     }
 }
 

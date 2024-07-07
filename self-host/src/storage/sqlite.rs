@@ -1,3 +1,4 @@
+use log::info;
 use sqlx::SqlitePool;
 
 use super::models::{APIKeyMetadataRow, ReleaseNotesColumn, ReleaseRow};
@@ -5,6 +6,7 @@ use super::models::{APIKeyMetadataRow, ReleaseNotesColumn, ReleaseRow};
 pub type DBResult<T, E = rocket::response::Debug<sqlx::Error>> = std::result::Result<T, E>;
 
 pub async fn insert_new_release(db: &SqlitePool, release: &ReleaseRow) -> DBResult<()> {
+    info!("inserting release {} into database", release.version);
     sqlx::query!(
         r#"INSERT OR IGNORE INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"#,
         release.version,
@@ -18,7 +20,7 @@ pub async fn insert_new_release(db: &SqlitePool, release: &ReleaseRow) -> DBResu
         release.next_audit_days,
         0,
         release.notes,
-        release.assets // TODO - JSON stringify
+        release.assets
     ).execute(db).await?;
     Ok(())
 }

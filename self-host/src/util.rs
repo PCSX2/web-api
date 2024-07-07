@@ -14,8 +14,6 @@ pub fn semver_tag_to_integral(version: &str) -> Option<i64> {
     // 1.2.3 becomes = 000001 000002 000003
     let parts: Vec<&str> = valid_semver.split(".").collect();
     if parts.len() < 2 || parts.len() > 3 {
-        // TODO error crate
-        // TODO or just make it an Option
         return None;
     }
 
