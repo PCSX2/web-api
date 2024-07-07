@@ -1,9 +1,0 @@
-main = "./src/index.ts"
-name = "api"
-compatibility_flags = [ "nodejs_compat" ]
-compatibility_date = "2023-11-14"
-account_id = "7049738c6e23ede87a178f2a56d15317"
-[[ d1_databases ]]
-binding = "DB"
-database_name = "release-api-prod"
-database_id = "5238dc0e-635d-4857-9fe4-ab3dbf91f479"
