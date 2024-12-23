@@ -1,4 +1,4 @@
-FROM rust:1.79-slim-bullseye as base
+FROM rust:1.81-slim-bullseye as base
 
 RUN apt-get update
 RUN apt-get install -y libssl-dev pkg-config
@@ -25,7 +25,7 @@ COPY --from=builder /usr/src/pcsx2-api/target/release/pcsx2-api /app/pcsx2-api
 RUN chmod +x /app/pcsx2-api
 
 # Install latest package updates
-RUN sudo apt update && sudo apt upgrade
+RUN apt update -y && apt upgrade -y
 
 # Run container as non-root user
 USER nobody

@@ -143,7 +143,7 @@ impl<'r> FromRequest<'r> for AdminAccess {
     type Error = std::convert::Infallible;
 
     async fn from_request(request: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
-        let admin_key = dotenvy::var("API_ADMIN_KEY").expect("API_ADMIN_KEY env var");
+        let admin_key = dotenvy::var("ADMIN_API_KEY").expect("ADMIN_API_KEY env var");
         match request.headers().get_one("X-PCSX2-API-Key") {
             Some(api_key) => {
                 if api_key == admin_key {

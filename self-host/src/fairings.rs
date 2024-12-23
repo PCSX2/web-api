@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use log::info;
 use regex::Regex;
 use rocket::{
     fairing::{Fairing, Info, Kind},
@@ -25,8 +26,10 @@ impl Fairing for CORSHeaderFairing {
 
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
         if let Some(origin) = request.headers().get_one("Origin") {
-            if origin == "https://pcsx2.net" || CF_PAGES_REGEX.is_match(origin) {
-                response.set_raw_header("Access-Control-Allow-Origin", origin);
+            if origin == "https://pcsx2.net" || origin.starts_with("http://localhost") || origin.starts_with("https://localhost") || CF_PAGES_REGEX.is_match(origin) {
+                response.set_raw_header("Access-Control-Allow-Origin", "*");
+            } else {
+                info!("Rejecting request from origin: {}", origin);
             }
         } else {
             // Allow localhost requests (no origin) or requests outside of browsers (they can spoof the Origin header anyway)

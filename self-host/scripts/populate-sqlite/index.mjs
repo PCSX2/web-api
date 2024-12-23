@@ -229,7 +229,6 @@ export async function emplaceReleases(db, releases) {
 		} catch (e) {
 			console.log(e);
 		}
-		
 	}
 	releaseInsert.finalize();
 }
