@@ -1,13 +1,12 @@
-dist
-node_modules
-transpiled
-/.idea/
-.env
-.dev.vars
-.wrangler/
-TODO.md
-
-
 # Added by cargo
 
 /target
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-shm
+db.sqlite3-wal
+.env
+.sqlx/
+*.log
+*.tar.gz
+TODO.md
