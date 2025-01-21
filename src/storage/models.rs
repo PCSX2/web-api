@@ -13,6 +13,12 @@ use crate::util::semver_tag_to_integral;
 
 #[derive(Serialize, FromRow, Debug)]
 #[serde(crate = "rocket::serde")]
+pub struct ReleaseVersion {
+    pub version: String,
+}
+
+#[derive(Serialize, FromRow, Debug)]
+#[serde(crate = "rocket::serde")]
 pub struct ReleaseRow {
     pub id: i64,
     pub version: String,

@@ -1,6 +1,8 @@
 use log::info;
 use sqlx::SqlitePool;
 
+use crate::storage::models::ReleaseVersion;
+
 use super::models::{APIKeyMetadataRow, ReleaseNotesColumn, ReleaseRow};
 
 pub type DBResult<T, E = rocket::response::Debug<sqlx::Error>> = std::result::Result<T, E>;
@@ -143,6 +145,18 @@ pub async fn list_releases(
         .await?;
         Ok(releases)
     }
+}
+
+pub async fn list_all_release_tags(db: &SqlitePool) -> DBResult<Vec<ReleaseVersion>> {
+    let versions = sqlx::query_as!(
+        ReleaseVersion,
+        r#"
+        SELECT version FROM releases;
+      "#,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(versions)
 }
 
 // TODO - search releases

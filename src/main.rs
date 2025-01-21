@@ -4,6 +4,7 @@ mod guards;
 mod responders;
 mod storage;
 mod util;
+mod external;
 use fern::colors::{Color, ColoredLevelConfig};
 
 #[macro_use]
@@ -122,8 +123,16 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Couldn't migrate the database tables");
 
+    // Check to see if the database is out of date (pull latest releases)
+    // do this only if we have the github api credential set
+    if dotenvy::var("GITHUB_API_TOKEN").is_ok() {
+        let octocrab = octocrab::Octocrab::builder().personal_token(dotenvy::var("GITHUB_API_TOKEN").unwrap()).build();
+        octocrab::initialise(octocrab.unwrap());
+        storage::sync::sync_database(&db).await;
+    }
+
     let _rocket = rocket::build()
-        // TODO V1 - to be removed asap
+        // TODO V1 - potentially remove eventually, the blocker would be the updater code in the emulator itself
         .mount(
             "/v1",
             routes![
