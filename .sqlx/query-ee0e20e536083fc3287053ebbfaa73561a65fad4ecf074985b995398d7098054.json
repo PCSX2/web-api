@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT * FROM api_keys WHERE api_key = ?;\n      ",
+  "describe": {
+    "columns": [
+      {
+        "name": "api_key",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "metadata_json",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "ee0e20e536083fc3287053ebbfaa73561a65fad4ecf074985b995398d7098054"
+}

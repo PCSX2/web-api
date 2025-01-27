@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT ?;\n          ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "version",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "version_integral",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "published_timestamp",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_timestamp",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "github_release_id",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "github_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "release_type",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit_days",
+        "ordinal": 9,
+        "type_info": "Int64"
+      },
+      {
+        "name": "archived",
+        "ordinal": 10,
+        "type_info": "Int64"
+      },
+      {
+        "name": "notes",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "assets",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "362ffd0aaca76ea3ba4ab894b763bab3db1e7b6d54db8e3d34c4b10be5eff745"
+}

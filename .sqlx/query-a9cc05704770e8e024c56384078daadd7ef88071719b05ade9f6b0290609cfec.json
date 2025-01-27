@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE releases SET notes = ?, assets = ? WHERE version = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a9cc05704770e8e024c56384078daadd7ef88071719b05ade9f6b0290609cfec"
+}

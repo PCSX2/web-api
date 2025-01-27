@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE releases SET archived = 1 WHERE version = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "55c07d68995ecee7259be9bc1f87225c60b58dfc50b77940b65015372a94aea3"
+}
