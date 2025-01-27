@@ -17,15 +17,17 @@ RUN cargo sqlx prepare
 
 # Build the binary
 RUN cargo install --path .
+RUN chmod +x ./target/release/pcsx2-api
 
 FROM debian:bullseye-slim as final
 
 RUN mkdir /app && chown nobody:nogroup /app && chmod 700 /app
-COPY --from=builder /usr/src/pcsx2-api/target/release/pcsx2-api /app/pcsx2-api
-RUN chmod +x /app/pcsx2-api
-
 # Install latest package updates
 RUN apt update -y && apt upgrade -y
+# Install CA Certificates
+RUN apt-get install -y ca-certificates && update-ca-certificates
+# Copy in Binary
+COPY --from=builder /usr/src/pcsx2-api/target/release/pcsx2-api /app/pcsx2-api
 
 # Run container as non-root user
 USER nobody

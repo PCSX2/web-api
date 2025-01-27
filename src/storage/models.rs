@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Duration, Utc};
+use chrono::{Duration, SecondsFormat, Utc};
 use octocrab::models::repos::Release;
 use regex::Regex;
 use rocket::form::validate::Contains;
@@ -101,7 +101,7 @@ impl ReleaseRow {
             version: github_release.tag_name.clone(),
             version_integral: semver_integral.unwrap(),
             published_timestamp: match &github_release.published_at {
-                Some(published_at) => Some(published_at.to_rfc3339()),
+                Some(published_at) => Some(published_at.to_rfc3339_opts(SecondsFormat::Millis, true)),
                 None => None,
             },
             created_timestamp: match &github_release.created_at {
@@ -109,7 +109,7 @@ impl ReleaseRow {
                     if release_date_override.is_some() {
                         release_date_override
                     } else {
-                        Some(created_at.to_rfc3339())
+                        Some(created_at.to_rfc3339_opts(SecondsFormat::Millis, true))
                     }
                 },
                 None => None,
@@ -121,7 +121,7 @@ impl ReleaseRow {
             } else {
                 "stable".to_owned()
             },
-            next_audit: (Utc::now() + Duration::days(7)).to_rfc3339(),
+            next_audit: (Utc::now() + Duration::days(7)).to_rfc3339_opts(SecondsFormat::Millis, true),
             next_audit_days: 7,
             archived: 0,
             notes: github_release.body.clone(),

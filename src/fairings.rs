@@ -11,7 +11,7 @@ pub struct CORSHeaderFairing {}
 
 lazy_static! {
     static ref CF_PAGES_REGEX: Regex =
-        Regex::new(r"https:\\/\\/[^\\.]*\\.pcsx2-net-www.pages.dev").unwrap();
+        Regex::new(r"https:\/\/[^\.]*\.pcsx2-net-www.pages.dev").unwrap();
 }
 
 #[rocket::async_trait]

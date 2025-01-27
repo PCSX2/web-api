@@ -37,6 +37,8 @@ TODO
 - Ensure Docker is running
 - `docker build . --tag pcsx2-api:local`
 
+- `docker save -o $PWD/pcsx2-api.tar.gz pcsx2-api:test`
+
 ### Running Local Docker Container
 
 - `docker-compose -f ./docker-compose.local.yaml up`

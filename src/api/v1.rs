@@ -1,8 +1,10 @@
 // TODO V1 - to be removed asap
 
 use std::collections::HashMap;
+use std::vec;
 
 use lazy_static::lazy_static;
+use log::info;
 use regex::Regex;
 use rocket::serde::json::serde_json;
 use rocket::{
@@ -67,7 +69,7 @@ impl ReleaseV1 {
             release_type = 2;
             prerelease = true;
         }
-        let mut assets_v1 = HashMap::new();
+        let mut assets_v1: HashMap<String, Vec<ReleaseAssetV1>> = HashMap::new();
         if let Ok(assets) = assets_v2 {
             for (k, v) in assets {
                 assets_v1.insert(
@@ -82,6 +84,10 @@ impl ReleaseV1 {
                             let mut display_name: String = "".to_owned();
                             if k.clone().to_lowercase().contains("macos") {
                                 display_name = "MacOS".to_owned();
+                                cleaned_tags = cleaned_tags
+                                    .into_iter()
+                                    .filter(|tag| !tag.to_lowercase().contains("qt"))
+                                    .collect();
                             } else if k.clone().to_lowercase().contains("windows") {
                                 display_name = "Windows".to_owned();
                                 if asset.download_url.to_lowercase().contains("x64") {
@@ -91,7 +97,7 @@ impl ReleaseV1 {
                                 }
                                 cleaned_tags = cleaned_tags
                                     .into_iter()
-                                    .filter(|tag| !tag.to_lowercase().contains("32bit"))
+                                    .filter(|tag| !tag.to_lowercase().contains("32bit") && !tag.to_lowercase().contains("64"))
                                     .collect();
                             } else if k.clone().to_lowercase().contains("linux") {
                                 display_name = "Linux".to_owned();
@@ -121,17 +127,46 @@ impl ReleaseV1 {
                 );
             }
         }
+        if let Some(v) = assets_v1.remove("macOS") {
+            assets_v1.insert("MacOS".to_string(), v);
+        }
+        if !assets_v1.contains_key("MacOS") {
+            assets_v1.insert("MacOS".to_string(), vec![]);
+        }
+        if !assets_v1.contains_key("Linux") {
+            assets_v1.insert("Linux".to_string(), vec![]);
+        }
+        if !assets_v1.contains_key("Windows") {
+            assets_v1.insert("Windows".to_string(), vec![]);
+        }
+
+        let mut created_at_timestamp = db_row.created_timestamp.clone();
+        let mut description = db_row.notes.clone();
+
+        if let Some(v) = &description {
+            if v.starts_with("<!-- DATE_OVERRIDE: ") {
+                let re = Regex::new(r"<!-- DATE_OVERRIDE: (\d{4}-\d{2}-\d{2}) -->\r\n").unwrap();
+                if let Some(time) = re
+                    .captures(&v)
+                    .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+                {
+                    created_at_timestamp = Some(format!("{}T12:00:00.000Z", time));
+                }
+                let cleaned_description = re.replace(v.as_str(), "").to_string();
+                description = Some(cleaned_description);
+            }
+        }
         Self {
             version: db_row.version.clone(),
             url: db_row.github_url.clone(),
             semver_major: semver.major,
             semver_minor: semver.minor,
             semver_patch: semver.patch,
-            description: db_row.notes.clone(),
+            description,
             assets: assets_v1,
             release_type,
             prerelease,
-            created_at: db_row.created_timestamp.clone(),
+            created_at: created_at_timestamp,
             published_at: db_row.published_timestamp.clone(),
         }
     }
@@ -167,6 +202,8 @@ pub async fn get_latest_releases_and_pull_requests(
 ) -> Result<CachedResponse<Json<LatestReleasesAndPullRequestsResponse>>, Status> {
     let db_nightly_releases = sqlite::get_recent_nightly_releases(db).await;
     let db_stable_releases = sqlite::get_recent_stable_releases(db).await;
+    let total_nightly_release_count = get_total_count_of_release_type(db, "nightly").await;
+    let total_stable_release_count = get_total_count_of_release_type(db, "stable").await;
 
     if db_nightly_releases.is_err() || db_stable_releases.is_err() {
         return Err(Status::InternalServerError);
@@ -175,24 +212,28 @@ pub async fn get_latest_releases_and_pull_requests(
     let nightly_releases = db_nightly_releases
         .unwrap()
         .iter()
-        .take(25)
+        .take(30)
         .map(|db_release| ReleaseV1::from_v2(db_release))
         .collect();
     let stable_releases = db_stable_releases
         .unwrap()
         .iter()
-        .take(25)
+        .take(30)
         .map(|db_release| ReleaseV1::from_v2(db_release))
         .collect();
 
     let response = LatestReleasesAndPullRequestsResponse {
         stable_releases: LatestReleasesAndPullRequestsResponseData {
             data: stable_releases,
-            page_info: PageInfo { total: 25 },
+            page_info: PageInfo {
+                total: total_stable_release_count.expect("to retrieve a count successfully"),
+            },
         },
         nightly_releases: LatestReleasesAndPullRequestsResponseData {
             data: nightly_releases,
-            page_info: PageInfo { total: 25 },
+            page_info: PageInfo {
+                total: total_nightly_release_count.expect("to retrieve a count successfully"),
+            },
         },
     };
     Ok(CachedResponse::new(
@@ -218,15 +259,16 @@ pub async fn list_stable_releases(
 ) -> Result<CachedResponse<Json<StableReleasesResponse>>, Status> {
     let mut final_page_size = 25;
     if let Some(size) = pageSize {
-        final_page_size = size.clamp(0, 100);
+        final_page_size = size.clamp(1, 100);
     }
     let mut final_offset = 0;
     if let Some(offset) = offset {
-        final_offset = offset;
+        final_offset = offset.max(0);
     }
+    info!("page size - {}", final_page_size);
 
-    let db_releases = list_releases_with_offset(db, final_offset, "Stable", final_page_size).await;
-    let total_release_count = get_total_count_of_release_type(db, "Stable").await;
+    let db_releases = list_releases_with_offset(db, final_offset, "stable", final_page_size).await;
+    let total_release_count = get_total_count_of_release_type(db, "stable").await;
     match db_releases {
         Ok(db_releases) => {
             let releases = db_releases
@@ -256,15 +298,15 @@ pub async fn list_nightly_releases(
 ) -> Result<CachedResponse<Json<StableReleasesResponse>>, Status> {
     let mut final_page_size = 25;
     if let Some(size) = pageSize {
-        final_page_size = size.clamp(0, 100);
+        final_page_size = size.clamp(1, 100);
     }
     let mut final_offset = 0;
     if let Some(offset) = offset {
-        final_offset = offset;
+        final_offset = offset.max(0);
     }
 
-    let db_releases = list_releases_with_offset(db, final_offset, "Nightly", final_page_size).await;
-    let total_release_count = get_total_count_of_release_type(db, "Nightly").await;
+    let db_releases = list_releases_with_offset(db, final_offset, "nightly", final_page_size).await;
+    let total_release_count = get_total_count_of_release_type(db, "nightly").await;
     match db_releases {
         Ok(db_releases) => {
             let releases = db_releases

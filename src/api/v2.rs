@@ -126,7 +126,7 @@ pub async fn get_release_list(
 ) -> Result<CachedResponse<Json<Vec<Release>>>, Status> {
     let mut final_page_size = 100;
     if let Some(size) = page_size {
-        final_page_size = size.clamp(0, 200);
+        final_page_size = size.clamp(1, 200);
     }
 
     let version_cursor_integral = match version_cursor {

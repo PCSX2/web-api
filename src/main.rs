@@ -12,7 +12,7 @@ extern crate rocket;
 
 use std::{collections::HashMap, sync::Mutex};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 // TODO - eventually we probably want a rate limit per endpoint
@@ -62,7 +62,7 @@ fn setup_logging() {
     let verbose_logging = dotenvy::var("VERBOSE_LOGGING").map_or(false, |val| val.to_lowercase().eq("true"));
     let error_log_path = dotenvy::var("ERROR_LOG_PATH").expect("ERROR_LOG_PATH must be set");
     let app_log_path = dotenvy::var("APP_LOG_PATH").expect("APP_LOG_PATH must be set");
-    let mut log_level = log::LevelFilter::Info;
+    let mut log_level = log::LevelFilter::Warn;
     if verbose_logging == true {
         log_level = log::LevelFilter::Debug;
     }
@@ -87,7 +87,7 @@ fn setup_logging() {
                     "\x1B[{}m",
                     colors_line.get_color(&record.level()).to_fg_str()
                   ),
-                date = chrono::Utc::now().to_rfc3339(),
+                date = chrono::Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
                 level = record.level(),
                 target = record.target(),
                 message = message
@@ -132,7 +132,8 @@ async fn main() -> Result<(), rocket::Error> {
     }
 
     let _rocket = rocket::build()
-        // TODO V1 - potentially remove eventually, the blocker would be the updater code in the emulator itself
+        // LEGACY - V1 - potentially remove eventually, the blocker would be the updater code in the emulator itself
+        // it might be best to just never remove this
         .mount(
             "/v1",
             routes![
@@ -141,17 +142,18 @@ async fn main() -> Result<(), rocket::Error> {
                 api::v1::list_stable_releases
             ],
         )
-        .mount(
-            "/v2",
-            routes![
-                api::v2::get_latest_releases,
-                api::v2::get_recent_releases,
-                api::v2::get_release_changelog,
-                api::v2::get_release_list,
-                api::v2::handle_github_webhook_release_event,
-                api::v2::admin_add_new_api_key,
-            ],
-        )
+        // TODO - not enabling V2 yet, want to write unit-tests and such before potentially people start using them
+        // .mount(
+        //     "/v2",
+        //     routes![
+        //         api::v2::get_latest_releases,
+        //         api::v2::get_recent_releases,
+        //         api::v2::get_release_changelog,
+        //         api::v2::get_release_list,
+        //         api::v2::handle_github_webhook_release_event,
+        //         api::v2::admin_add_new_api_key,
+        //     ],
+        // )
         .attach(fairings::CORSHeaderFairing::default())
         .manage(db)
         .manage(rate_limiter)
