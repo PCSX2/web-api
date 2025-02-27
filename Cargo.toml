@@ -14,7 +14,7 @@ sha2 = "0.10.8"
 hmac = "0.12.1"
 octocrab = { version = "0.32.0", features = ["stream"] }
 chrono = "0.4.31"
-fern = { version = "0.6.2", features = ["date-based", "colored"] }
+fern = { version = "0.7.1", features = ["date-based", "colored"] }
 log = "0.4.20"
 
 [profile.release]
