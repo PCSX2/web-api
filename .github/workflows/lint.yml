@@ -27,9 +27,7 @@ jobs:
           shared-key: web-api-build-ubuntu-latest
 
       - name: Check Rust formatting
-        run: |
-          cd src-tauri/
-          cargo fmt --all --check
+        run: cargo fmt --all --check
 
   linter:
     name: Linter

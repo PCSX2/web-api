@@ -26,7 +26,11 @@ impl Fairing for CORSHeaderFairing {
 
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
         if let Some(origin) = request.headers().get_one("Origin") {
-            if origin == "https://pcsx2.net" || origin.starts_with("http://localhost") || origin.starts_with("https://localhost") || CF_PAGES_REGEX.is_match(origin) {
+            if origin == "https://pcsx2.net"
+                || origin.starts_with("http://localhost")
+                || origin.starts_with("https://localhost")
+                || CF_PAGES_REGEX.is_match(origin)
+            {
                 response.set_raw_header("Access-Control-Allow-Origin", "*");
             } else {
                 info!("Rejecting request from origin: {}", origin);

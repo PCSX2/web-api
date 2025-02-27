@@ -1,10 +1,10 @@
 mod api;
+mod external;
 mod fairings;
 mod guards;
 mod responders;
 mod storage;
 mod util;
-mod external;
 use fern::colors::{Color, ColoredLevelConfig};
 
 #[macro_use]
@@ -59,7 +59,8 @@ impl RateLimiterCache {
 }
 
 fn setup_logging() {
-    let verbose_logging = dotenvy::var("VERBOSE_LOGGING").map_or(false, |val| val.to_lowercase().eq("true"));
+    let verbose_logging =
+        dotenvy::var("VERBOSE_LOGGING").map_or(false, |val| val.to_lowercase().eq("true"));
     let error_log_path = dotenvy::var("ERROR_LOG_PATH").expect("ERROR_LOG_PATH must be set");
     let app_log_path = dotenvy::var("APP_LOG_PATH").expect("APP_LOG_PATH must be set");
     let mut log_level = log::LevelFilter::Warn;
@@ -86,7 +87,7 @@ fn setup_logging() {
                 color_line = format_args!(
                     "\x1B[{}m",
                     colors_line.get_color(&record.level()).to_fg_str()
-                  ),
+                ),
                 date = chrono::Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
                 level = record.level(),
                 target = record.target(),
@@ -126,7 +127,9 @@ async fn main() -> Result<(), rocket::Error> {
     // Check to see if the database is out of date (pull latest releases)
     // do this only if we have the github api credential set
     if dotenvy::var("GITHUB_API_TOKEN").is_ok() {
-        let octocrab = octocrab::Octocrab::builder().personal_token(dotenvy::var("GITHUB_API_TOKEN").unwrap()).build();
+        let octocrab = octocrab::Octocrab::builder()
+            .personal_token(dotenvy::var("GITHUB_API_TOKEN").unwrap())
+            .build();
         octocrab::initialise(octocrab.unwrap());
         storage::sync::sync_database(&db).await;
     }

@@ -14,7 +14,10 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
     // 0. Get a list of all current version numbers (tags)
     let current_version_data = storage::sqlite::list_all_release_tags(db).await;
     if current_version_data.is_err() {
-        log::error!("unable to fetch current version data: {:?}", current_version_data.err());
+        log::error!(
+            "unable to fetch current version data: {:?}",
+            current_version_data.err()
+        );
         return false;
     }
     let current_versions = current_version_data
@@ -56,7 +59,10 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
             .send()
             .await;
         if main_release_stream_req.is_err() {
-            log::error!("unable to retrieve PCSX2/pcsx2 releases: {:?}", main_release_stream_req.err());
+            log::error!(
+                "unable to retrieve PCSX2/pcsx2 releases: {:?}",
+                main_release_stream_req.err()
+            );
             return false;
         }
         let main_release_stream = main_release_stream_req.unwrap().into_stream(&octocrab);
@@ -91,7 +97,10 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
             .send()
             .await;
         if archive_release_stream_req.is_err() {
-            log::error!("unable to retrieve PCSX2/archive releases: {:?}", archive_release_stream_req.err());
+            log::error!(
+                "unable to retrieve PCSX2/archive releases: {:?}",
+                archive_release_stream_req.err()
+            );
             return false;
         }
         let archive_release_stream = archive_release_stream_req.unwrap().into_stream(&octocrab);

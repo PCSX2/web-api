@@ -97,7 +97,10 @@ impl ReleaseV1 {
                                 }
                                 cleaned_tags = cleaned_tags
                                     .into_iter()
-                                    .filter(|tag| !tag.to_lowercase().contains("32bit") && !tag.to_lowercase().contains("64"))
+                                    .filter(|tag| {
+                                        !tag.to_lowercase().contains("32bit")
+                                            && !tag.to_lowercase().contains("64")
+                                    })
                                     .collect();
                             } else if k.clone().to_lowercase().contains("linux") {
                                 display_name = "Linux".to_owned();
