@@ -53,6 +53,8 @@ jobs:
   publish_image:
     if: github.repository == 'PCSX2/web-api'
     name: "Build and Publish Image"
+    needs:
+      - cut_release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
