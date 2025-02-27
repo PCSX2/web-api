@@ -19,6 +19,8 @@ env:
 
 permissions:
   contents: write
+  attestations: write
+  packages: write
 
 jobs:
   cut_release:
