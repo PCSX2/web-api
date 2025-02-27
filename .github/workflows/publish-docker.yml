@@ -12,13 +12,8 @@ permissions:
   id-token: write
 
 jobs:
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      build_image:
+  publish_image:
     if: github.repository == 'PCSX2/web-api'
-    needs:
-      - cut_release
     name: "Build and Publish Image"
     runs-on: ubuntu-latest
     steps:
