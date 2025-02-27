@@ -1,0 +1,48 @@
+name: 📝 Linter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        name: Cache Rust Build
+        with:
+          shared-key: web-api-build-ubuntu-latest
+
+      - name: Check Rust formatting
+        run: cargo fmt --all --check
+
+  linter:
+    name: Linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        name: Cache Rust Build
+        with:
+          shared-key: web-api-build-${{ matrix.platform }}
+
+      - uses: actions-rs/clippy-check@v1
+        name: Rust Linting - Clippy
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --manifest-path Cargo.toml

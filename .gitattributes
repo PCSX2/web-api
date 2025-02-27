@@ -1,0 +1,4 @@
+# Ensure line endings are consistently 'LF'
+* text=auto
+
+.sqlx/**/* linguist-generated

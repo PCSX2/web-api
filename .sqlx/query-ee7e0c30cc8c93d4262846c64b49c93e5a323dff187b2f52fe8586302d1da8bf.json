@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO api_keys (api_key, metadata_json) VALUES (?, ?);\n      ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ee7e0c30cc8c93d4262846c64b49c93e5a323dff187b2f52fe8586302d1da8bf"
+}
