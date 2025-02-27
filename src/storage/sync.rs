@@ -14,7 +14,7 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
     // 0. Get a list of all current version numbers (tags)
     let current_version_data = storage::sqlite::list_all_release_tags(db).await;
     if current_version_data.is_err() {
-        // TODO log error
+        log::error!("unable to fetch current version data: {:?}", current_version_data.err());
         return false;
     }
     let current_versions = current_version_data
@@ -26,7 +26,7 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
     let latest_version = match external::github::get_latest_official_version().await {
         Ok(latest_version) => latest_version,
         Err(err) => {
-            // TODO - error
+            log::error!("unable to fetch latest PCSX2/pcsx2 version: {:?}", err);
             return false;
         }
     };
@@ -34,7 +34,7 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
     let latest_archive_version = match external::github::get_latest_archive_version().await {
         Ok(latest_version) => latest_version,
         Err(err) => {
-            // TODO - error
+            log::error!("unable to fetch latest PCSX2/archive version: {:?}", err);
             return false;
         }
     };
@@ -56,7 +56,7 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
             .send()
             .await;
         if main_release_stream_req.is_err() {
-            // TODO - error
+            log::error!("unable to retrieve PCSX2/pcsx2 releases: {:?}", main_release_stream_req.err());
             return false;
         }
         let main_release_stream = main_release_stream_req.unwrap().into_stream(&octocrab);
@@ -91,7 +91,7 @@ pub async fn sync_database(db: &SqlitePool) -> bool {
             .send()
             .await;
         if archive_release_stream_req.is_err() {
-            // TODO - error
+            log::error!("unable to retrieve PCSX2/archive releases: {:?}", archive_release_stream_req.err());
             return false;
         }
         let archive_release_stream = archive_release_stream_req.unwrap().into_stream(&octocrab);
