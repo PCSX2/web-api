@@ -146,17 +146,17 @@ async fn main() -> Result<(), rocket::Error> {
             ],
         )
         // TODO - not enabling V2 yet, want to write unit-tests and such before potentially people start using them
-        // .mount(
-        //     "/v2",
-        //     routes![
-        //         api::v2::get_latest_releases,
-        //         api::v2::get_recent_releases,
-        //         api::v2::get_release_changelog,
-        //         api::v2::get_release_list,
-        //         api::v2::handle_github_webhook_release_event,
-        //         api::v2::admin_add_new_api_key,
-        //     ],
-        // )
+        .mount(
+            "/v2",
+            routes![
+                // api::v2::get_latest_releases,
+                // api::v2::get_recent_releases,
+                // api::v2::get_release_changelog,
+                // api::v2::get_release_list,
+                api::v2::handle_github_webhook_release_event,
+                // api::v2::admin_add_new_api_key,
+            ],
+        )
         .attach(fairings::CORSHeaderFairing::default())
         .manage(db)
         .manage(rate_limiter)
