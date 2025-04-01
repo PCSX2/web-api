@@ -12,10 +12,10 @@ regex = "1.5"
 lazy_static = "1.4"
 sha2 = "0.10.8"
 hmac = "0.12.1"
-octocrab = { version = "0.43.0", features = ["stream"] }
+octocrab = { version = "0.44.0", features = ["stream"] }
 chrono = "0.4.40"
 fern = { version = "0.7.1", features = ["date-based", "colored"] }
-log = "0.4.26"
+log = "0.4.27"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
