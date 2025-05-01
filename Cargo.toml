@@ -6,16 +6,16 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 rocket = { version = "0.5.0", features = ["json"] }
-sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "0.8.5", features = ["runtime-tokio", "sqlite"] }
 dotenvy = "0.15"
 regex = "1.5"
 lazy_static = "1.4"
-sha2 = "0.10.8"
+sha2 = "0.10.9"
 hmac = "0.12.1"
-octocrab = { version = "0.43.0", features = ["stream"] }
-chrono = "0.4.40"
+octocrab = { version = "0.44.0", features = ["stream"] }
+chrono = "0.4.41"
 fern = { version = "0.7.1", features = ["date-based", "colored"] }
-log = "0.4.26"
+log = "0.4.27"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
