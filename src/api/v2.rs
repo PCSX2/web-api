@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, print, vec};
 
 use crate::{
     api::models::Release,
@@ -11,9 +11,9 @@ use crate::{
     util::semver_tag_to_integral,
 };
 
-use log::debug;
+use log::{debug, error};
 use octocrab::models::webhook_events::{payload::ReleaseWebhookEventAction, WebhookEventPayload};
-use rocket::State;
+use rocket::{get, post, State};
 use rocket::{
     http::Status,
     serde::{json::Json, Deserialize},
@@ -24,24 +24,31 @@ use sqlx::{Pool, Sqlite};
 pub async fn get_latest_releases(
     _rate_limiter: RateLimiter,
     db: &State<Pool<Sqlite>>,
-) -> Result<CachedResponse<Json<HashMap<String, Release>>>, Status> {
+) -> Result<CachedResponse<Json<HashMap<String, Option<Release>>>>, Status> {
     let latest_nightly_release = sqlite::get_latest_nightly_release(db).await;
     let latest_stable_release = sqlite::get_latest_stable_release(db).await;
 
-    if latest_nightly_release.is_err() || latest_stable_release.is_err() {
-        return Err(Status::InternalServerError);
+    let mut response = HashMap::new();
+    if latest_nightly_release.is_err() {
+        error!("Unable to locate latest nightly");
+        response.insert("nightly".to_owned(), None);
+    } else {
+        response.insert(
+            "nightly".to_owned(),
+            Some(Release::from_database(&latest_nightly_release.unwrap())),
+        );
     }
 
-    let response = HashMap::from([
-        (
-            "nightly".to_owned(),
-            Release::from_database(&latest_nightly_release.unwrap()),
-        ),
-        (
+    if latest_stable_release.is_err() {
+        error!("Unable to locate latest stable");
+        response.insert("stable".to_owned(), None);
+    } else {
+        response.insert(
             "stable".to_owned(),
-            Release::from_database(&latest_stable_release.unwrap()),
-        ),
-    ]);
+            Some(Release::from_database(&latest_stable_release.unwrap())),
+        );
+    }
+
     Ok(CachedResponse::new(
         Json(response),
         "public, max-age=300".to_owned(),
@@ -56,24 +63,31 @@ pub async fn get_recent_releases(
     let db_nightly_releases = sqlite::get_recent_nightly_releases(db).await;
     let db_stable_releases = sqlite::get_recent_stable_releases(db).await;
 
-    if db_nightly_releases.is_err() || db_stable_releases.is_err() {
-        return Err(Status::InternalServerError);
+    let mut response = HashMap::new();
+    if db_nightly_releases.is_err() {
+        error!("Unable to get recent nightly releases");
+        response.insert("nightly".to_owned(), vec![]);
+    } else {
+        let nightly_releases = db_nightly_releases
+            .unwrap()
+            .iter()
+            .map(|db_release| Release::from_database(db_release))
+            .collect();
+        response.insert("nightly".to_owned(), nightly_releases);
     }
 
-    let nightly_releases = db_nightly_releases
-        .unwrap()
-        .iter()
-        .map(|db_release| Release::from_database(db_release))
-        .collect();
-    let stable_releases = db_stable_releases
-        .unwrap()
-        .iter()
-        .map(|db_release| Release::from_database(db_release))
-        .collect();
-    let response = HashMap::from([
-        ("nightly".to_owned(), nightly_releases),
-        ("stable".to_owned(), stable_releases),
-    ]);
+    if db_stable_releases.is_err() {
+        error!("Unable to get recent stable releases");
+        response.insert("stable".to_owned(), vec![]);
+    } else {
+        let stable_releases = db_stable_releases
+            .unwrap()
+            .iter()
+            .map(|db_release| Release::from_database(db_release))
+            .collect();
+        response.insert("stable".to_owned(), stable_releases);
+    }
+
     Ok(CachedResponse::new(
         Json(response),
         "public, max-age=300".to_owned(),
@@ -130,7 +144,10 @@ pub async fn get_release_list(
     }
 
     let version_cursor_integral = match version_cursor {
-        Some(cursor) => semver_tag_to_integral(&cursor),
+        Some(cursor) => match semver_tag_to_integral(&cursor) {
+            Some(integral) => Some(integral),
+            None => return Err(Status::BadRequest),
+        },
         None => None,
     };
 
@@ -195,7 +212,10 @@ pub async fn handle_github_webhook_release_event(
                 }
                 let db_result = sqlite::update_existing_release(db, &db_release.unwrap()).await;
                 if db_result.is_err() {
-                    log::error!("Error occured when inserting new release: {:?}", db_result);
+                    log::error!(
+                        "Error occured when updating existing release: {:?}",
+                        db_result
+                    );
                     return Status::InternalServerError;
                 }
             }
@@ -235,7 +255,7 @@ pub struct AddAPIKeyRequest {
 
 #[post("/admin/addNewAPIKey", data = "<payload>")]
 pub async fn admin_add_new_api_key(
-    admin_acess: AdminAccess,
+    _admin_acess: AdminAccess,
     db: &State<Pool<Sqlite>>,
     payload: Json<AddAPIKeyRequest>,
 ) -> Status {

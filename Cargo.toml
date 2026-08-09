@@ -16,6 +16,7 @@ octocrab = { version = "0.43.0", features = ["stream"] }
 chrono = "0.4.40"
 fern = { version = "0.7.1", features = ["date-based", "colored"] }
 log = "0.4.26"
+serde_json = "1.0.151"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.

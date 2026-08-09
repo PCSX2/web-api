@@ -6,6 +6,7 @@ use std::vec;
 use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
+use rocket::get;
 use rocket::serde::json::serde_json;
 use rocket::{
     http::Status,

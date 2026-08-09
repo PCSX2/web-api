@@ -9,7 +9,7 @@ pub type DBResult<T, E = rocket::response::Debug<sqlx::Error>> = std::result::Re
 
 pub async fn insert_new_release(db: &SqlitePool, release: &ReleaseRow) -> DBResult<()> {
     info!("inserting release {} into database", release.version);
-    sqlx::query!(
+    let result = sqlx::query!(
         r#"INSERT OR IGNORE INTO releases (version, version_integral, published_timestamp, created_timestamp, github_release_id, github_url, release_type, next_audit, next_audit_days, archived, notes, assets) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"#,
         release.version,
         release.version_integral,
@@ -24,10 +24,15 @@ pub async fn insert_new_release(db: &SqlitePool, release: &ReleaseRow) -> DBResu
         release.notes,
         release.assets
     ).execute(db).await?;
+    info!("rows affected = {}", result.rows_affected());
     Ok(())
 }
 
 pub async fn update_existing_release(db: &SqlitePool, release: &ReleaseRow) -> DBResult<()> {
+    print!(
+        "UPDATE releases SET notes = {:?}, assets = {:?} WHERE version = {:?};",
+        release.notes, release.assets, release.version
+    );
     sqlx::query!(
         r#"UPDATE releases SET notes = ?, assets = ? WHERE version = ?;"#,
         release.notes,
@@ -40,13 +45,14 @@ pub async fn update_existing_release(db: &SqlitePool, release: &ReleaseRow) -> D
 }
 
 pub async fn archive_release(db: &SqlitePool, release: &ReleaseRow) -> DBResult<()> {
-    let mut sanitized_tag = release.version.clone();
-    if sanitized_tag.starts_with("v") {
-        sanitized_tag.remove(0);
-    }
+    // TODO NOW - go back the live DB and see if im removing the `v` or not
+    // let mut sanitized_tag = release.version.clone();
+    // if sanitized_tag.starts_with("v") {
+    //     sanitized_tag.remove(0);
+    // }
     sqlx::query!(
         r#"UPDATE releases SET archived = 1 WHERE version = ?;"#,
-        sanitized_tag
+        release.version
     )
     .execute(db)
     .await?;
@@ -111,7 +117,7 @@ pub async fn get_release_notes_for_range(
         ReleaseNotesColumn,
         r#"
         SELECT notes FROM releases WHERE archived = 0 AND version_integral >= ? AND version_integral <= ? ORDER BY version_integral DESC;
-      "#, compare_version_integral, base_version_integral
+      "#, base_version_integral, compare_version_integral, 
     )
     .fetch_all(db)
     .await?;

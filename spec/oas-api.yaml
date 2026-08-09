@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: PCSX2 API
+  version: 2.0.0
+  description: |
+    TODO
+
+paths:
+  /v1/latestReleasesAndPullRequests:
+    get:
+      summary: Get latest releases and pull requests
+      description: Legacy endpoint.
+      deprecated: true
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/stableReleases:
+    get:
+      summary: List stable releases
+      description: Legacy endpoint.
+      deprecated: true
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          required: false
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/nightlyReleases:
+    get:
+      summary: List nightly releases
+      description: Legacy endpoint.
+      deprecated: true
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          required: false
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/webhooks/githubReleaseEvent:
+    post:
+      summary: Handle GitHub release webhook event
+      description: |
+        Receives GitHub release webhook events. Requires GitHub webhook authentication headers.
+      security:
+        - GitHubWebhookAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw GitHub webhook payload
+      responses:
+        "200":
+          description: Event processed successfully
+        "401":
+          description: Unauthorized (invalid or missing GitHub signature)
+
+components:
+  securitySchemes:
+    GitHubWebhookAuth:
+      type: apiKey
+      in: header
+      name: X-Hub-Signature-256
+      description: |
+        HMAC hex digest of the payload using the webhook secret.
+        GitHub also sends X-GitHub-Event and X-GitHub-Delivery headers, which should be validated.

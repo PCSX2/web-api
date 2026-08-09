@@ -4,11 +4,15 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    groups:
+      ci-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "monthly"
     groups:
-      deps:
+      rust-deps:
         patterns:
           - "*"

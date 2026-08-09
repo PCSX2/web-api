@@ -2,7 +2,9 @@ mod api;
 mod external;
 mod fairings;
 mod guards;
+mod ratelimiter;
 mod responders;
+mod router;
 mod storage;
 mod util;
 use fern::colors::{Color, ColoredLevelConfig};
@@ -10,53 +12,12 @@ use fern::colors::{Color, ColoredLevelConfig};
 #[macro_use]
 extern crate rocket;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::sync::Mutex;
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::SecondsFormat;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
-// TODO - eventually we probably want a rate limit per endpoint
-struct RateLimitMetadata {
-    timestamp_start: DateTime<Utc>,
-    requests_handled: usize,
-}
-
-struct RateLimiterCache {
-    rate_limit_cache: HashMap<String, RateLimitMetadata>,
-    last_time_flushed: Option<DateTime<Utc>>,
-}
-
-impl RateLimiterCache {
-    fn new() -> Self {
-        Self {
-            rate_limit_cache: HashMap::new(),
-            last_time_flushed: None,
-        }
-    }
-
-    pub fn get_or_insert(&mut self, key: String) -> &mut RateLimitMetadata {
-        self.flush();
-        self.rate_limit_cache
-            .entry(key)
-            .or_insert_with(|| RateLimitMetadata {
-                timestamp_start: Utc::now(),
-                requests_handled: 0,
-            })
-    }
-
-    pub fn flush(&mut self) {
-        // Only flush at most every minute
-        if let Some(last_time_flushed) = self.last_time_flushed {
-            if last_time_flushed + chrono::Duration::minutes(1) > Utc::now() {
-                return;
-            }
-        }
-        // Remove any items that are older than 60 seconds
-        self.rate_limit_cache
-            .retain(|_, v| v.timestamp_start > Utc::now() - chrono::Duration::seconds(60));
-        self.last_time_flushed = Some(Utc::now());
-    }
-}
+use crate::{ratelimiter::RateLimiterCache, router::build_rocket};
 
 fn setup_logging() {
     let verbose_logging =
@@ -95,22 +56,15 @@ fn setup_logging() {
             ))
         })
         .chain(
-            fern::Dispatch::new().level(log::LevelFilter::Error).chain(
-                fern::log_file(&error_log_path).unwrap_or_else(|_| {
-                    panic!("Cann't use this error_log_path: {}", &error_log_path)
-                }),
-            ),
+            fern::Dispatch::new()
+                .level(log::LevelFilter::Error)
+                .chain(fern::log_file(&error_log_path).expect("Can't use this error log path")),
         )
         .apply()
         .unwrap()
 }
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    setup_logging();
-
-    let rate_limiter = Mutex::new(RateLimiterCache::new());
-
+async fn create_database() -> SqlitePool {
     let db = SqlitePool::connect_with(
         SqliteConnectOptions::new()
             .filename("db.sqlite3")
@@ -124,43 +78,28 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Couldn't migrate the database tables");
 
+    db
+}
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    setup_logging();
+
+    let rate_limiter = Mutex::new(RateLimiterCache::new());
+    let db = create_database().await;
+
     // Check to see if the database is out of date (pull latest releases)
-    // do this only if we have the github api credential set
-    if dotenvy::var("GITHUB_API_TOKEN").is_ok() {
+    if let Ok(token) = dotenvy::var("GITHUB_API_TOKEN") {
         let octocrab = octocrab::Octocrab::builder()
-            .personal_token(dotenvy::var("GITHUB_API_TOKEN").unwrap())
-            .build();
-        octocrab::initialise(octocrab.unwrap());
+            .personal_token(token)
+            .build()
+            .unwrap();
+
+        octocrab::initialise(octocrab);
         storage::sync::sync_database(&db).await;
     }
 
-    let _rocket = rocket::build()
-        // LEGACY - V1 - potentially remove eventually, the blocker would be the updater code in the emulator itself
-        // it might be best to just never remove this
-        .mount(
-            "/v1",
-            routes![
-                api::v1::get_latest_releases_and_pull_requests,
-                api::v1::list_nightly_releases,
-                api::v1::list_stable_releases
-            ],
-        )
-        // TODO - not enabling V2 yet, want to write unit-tests and such before potentially people start using them
-        .mount(
-            "/v2",
-            routes![
-                // api::v2::get_latest_releases,
-                // api::v2::get_recent_releases,
-                // api::v2::get_release_changelog,
-                // api::v2::get_release_list,
-                api::v2::handle_github_webhook_release_event,
-                // api::v2::admin_add_new_api_key,
-            ],
-        )
-        .attach(fairings::CORSHeaderFairing::default())
-        .manage(db)
-        .manage(rate_limiter)
-        .launch()
-        .await?;
+    build_rocket(db, rate_limiter).launch().await?;
+
     Ok(())
 }

@@ -1,8 +1,9 @@
-fn pad_start(input: &str, pad_length: usize, pad_char: char) -> String {
+pub fn pad_start(input: &str, pad_length: usize, pad_char: char) -> String {
     let padding = pad_char
         .to_string()
         .repeat(pad_length.saturating_sub(input.len()));
-    format!("{}{}", padding, input)
+    let result = format!("{}{}", padding, input);
+    return result;
 }
 
 pub fn semver_tag_to_integral(version: &str) -> Option<i64> {
@@ -45,7 +46,6 @@ impl Semver {
                 .strip_prefix("v")
                 .expect("removed the 'v' prefix we found");
         }
-        // TODO - some releases did not have 3 parts!
         if valid_semver.split(".").count() < 3 {
             let parts: Vec<&str> = valid_semver.split(".").collect();
             Semver {
