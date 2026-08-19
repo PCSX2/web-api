@@ -8,6 +8,7 @@ mod router;
 mod storage;
 mod util;
 use fern::colors::{Color, ColoredLevelConfig};
+use tokio::time::Duration as TokioDuration;
 
 #[macro_use]
 extern crate rocket;
@@ -88,15 +89,24 @@ async fn main() -> Result<(), rocket::Error> {
     let rate_limiter = Mutex::new(RateLimiterCache::new());
     let db = create_database().await;
 
-    // Check to see if the database is out of date (pull latest releases)
     if let Ok(token) = dotenvy::var("GITHUB_API_TOKEN") {
         let octocrab = octocrab::Octocrab::builder()
             .personal_token(token)
             .build()
             .unwrap();
 
-        octocrab::initialise(octocrab);
+        octocrab::initialise(octocrab.clone());
+
+        // Initial synchronization.
+        // Check to see if the database is out of date (pull latest releases)
         storage::sync::sync_database(&db).await;
+
+        // Background periodic asset auditing.
+        tokio::spawn(storage::audit::run_audit_scheduler(
+            db.clone(),
+            octocrab.clone(),
+            TokioDuration::from_secs(24 * 60 * 60),
+        ));
     }
 
     build_rocket(db, rate_limiter).launch().await?;

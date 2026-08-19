@@ -1,3 +1,4 @@
+use chrono::Utc;
 use log::info;
 use sqlx::SqlitePool;
 
@@ -44,12 +45,28 @@ pub async fn update_existing_release(db: &SqlitePool, release: &ReleaseRow) -> D
     Ok(())
 }
 
+pub async fn update_existing_release_from_audit(
+    db: &SqlitePool,
+    release: &ReleaseRow,
+) -> DBResult<()> {
+    print!(
+        "UPDATE releases SET notes = {:?}, assets = {:?}, next_audit = {:?}, next_audit_days = {:?} WHERE version = {:?};",
+        release.notes, release.assets, release.next_audit, release.next_audit_days, release.version
+    );
+    sqlx::query!(
+        r#"UPDATE releases SET notes = ?, assets = ?, next_audit = ?, next_audit_days = ? WHERE version = ?;"#,
+        release.notes,
+        release.assets,
+        release.next_audit,
+        release.next_audit_days,
+        release.version
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
 pub async fn archive_release(db: &SqlitePool, release: &ReleaseRow) -> DBResult<()> {
-    // TODO NOW - go back the live DB and see if im removing the `v` or not
-    // let mut sanitized_tag = release.version.clone();
-    // if sanitized_tag.starts_with("v") {
-    //     sanitized_tag.remove(0);
-    // }
     sqlx::query!(
         r#"UPDATE releases SET archived = 1 WHERE version = ?;"#,
         release.version
@@ -195,4 +212,61 @@ pub async fn insert_new_api_key(
     .execute(db)
     .await?;
     Ok(())
+}
+
+pub async fn fetch_auditable_releases(db: &SqlitePool) -> DBResult<Vec<ReleaseRow>> {
+    let now = Utc::now().to_rfc3339();
+    let releases = sqlx::query_as!(
+        ReleaseRow,
+        r#"
+        SELECT
+            id,
+            version,
+            version_integral,
+            published_timestamp,
+            created_timestamp,
+            github_release_id,
+            github_url,
+            release_type,
+            next_audit,
+            next_audit_days,
+            archived,
+            notes,
+            assets
+        FROM releases
+        WHERE archived = 0
+          AND next_audit <= ?
+        "#,
+        now
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(releases)
+}
+
+pub async fn get_release_by_version(db: &SqlitePool, version: &str) -> DBResult<ReleaseRow> {
+    Ok(sqlx::query_as!(
+        ReleaseRow,
+        r#"
+            SELECT
+                id,
+                version,
+                version_integral,
+                published_timestamp,
+                created_timestamp,
+                github_release_id,
+                github_url,
+                release_type,
+                next_audit,
+                next_audit_days,
+                archived,
+                notes,
+                assets
+            FROM releases
+            WHERE version = ?
+        "#,
+        version
+    )
+    .fetch_one(db)
+    .await?)
 }

@@ -50,7 +50,7 @@ pub fn test_release(version: &str, is_nightly: bool) -> ReleaseRow {
         published_timestamp: Some(timestamp.clone()),
         created_timestamp: Some(timestamp.clone()),
         github_release_id: 12345,
-        github_url: format!("https://github.com/pcsx2/{version}"),
+        github_url: format!("https://github.com/PCSX2/pcsx2/releases/tag/{version}"),
         release_type: if is_nightly {
             "nightly".to_string()
         } else {
@@ -60,7 +60,17 @@ pub fn test_release(version: &str, is_nightly: bool) -> ReleaseRow {
         next_audit_days: 0,
         archived: 0,
         notes: None,
-        assets: "{}".to_string(),
+        assets: serde_json::json!({
+            "Linux": [
+                {
+                    "downloadUrl": "https://github.com/PCSX2/archive/releases/download/v1.2.3/pcsx2-v1.2.3-linux.zip",
+                    "tags": [],
+                    "downloadCount": 0,
+                    "downloadSizeBytes": 1024
+                }
+            ]
+        })
+        .to_string(),
     }
 }
 

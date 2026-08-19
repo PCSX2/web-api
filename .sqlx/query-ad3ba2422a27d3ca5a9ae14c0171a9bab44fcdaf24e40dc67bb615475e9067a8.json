@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            id,\n            version,\n            version_integral,\n            published_timestamp,\n            created_timestamp,\n            github_release_id,\n            github_url,\n            release_type,\n            next_audit,\n            next_audit_days,\n            archived,\n            notes,\n            assets\n        FROM releases\n        WHERE archived = 0\n          AND next_audit <= ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "version",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "version_integral",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "published_timestamp",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_timestamp",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "github_release_id",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "github_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "release_type",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit_days",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "archived",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "notes",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "assets",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ad3ba2422a27d3ca5a9ae14c0171a9bab44fcdaf24e40dc67bb615475e9067a8"
+}
