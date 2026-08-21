@@ -1,0 +1,666 @@
+openapi: 3.0.3
+
+info:
+  title: PCSX2 API
+  version: "2.0.0"
+  description: |
+    API for retrieving PCSX2 release information.
+
+servers:
+  - url: /
+
+tags:
+  - name: Releases
+    description: Release information
+  - name: Webhooks
+    description: GitHub webhook endpoints
+  - name: Admin
+    description: Administrative endpoints
+  - name: V1
+    description: Deprecated V1 API
+
+paths:
+
+  # ============================================================================
+  # V2
+  # ============================================================================
+
+  /v2/releases/latest:
+    get:
+      tags: [Releases]
+      summary: Get the latest stable and nightly releases
+      operationId: getLatestReleases
+      responses:
+        "200":
+          description: Latest releases
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - stable
+                  - nightly
+                properties:
+                  stable:
+                    nullable: true
+                    $ref: "#/components/schemas/Release"
+                  nightly:
+                    nullable: true
+                    $ref: "#/components/schemas/Release"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/releases/recent:
+    get:
+      tags: [Releases]
+      summary: Get recent stable and nightly releases
+      operationId: getRecentReleases
+      responses:
+        "200":
+          description: Recent releases
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - stable
+                  - nightly
+                properties:
+                  stable:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Release"
+                  nightly:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Release"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/releases/changelog:
+    get:
+      tags: [Releases]
+      summary: Get combined release notes between two versions
+      operationId: getReleaseChangelog
+      parameters:
+        - name: base
+          in: query
+          required: true
+          description: Base release version.
+          schema:
+            type: string
+          example: v1.2.0
+
+        - name: compare
+          in: query
+          required: true
+          description: Version to compare against.
+          schema:
+            type: string
+          example: v1.3.0
+
+      responses:
+        "200":
+          description: Combined release notes
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/releases/{release_type}:
+    get:
+      tags: [Releases]
+      summary: List releases
+      operationId: getReleaseList
+      parameters:
+        - name: release_type
+          in: path
+          required: true
+          description: Release type.
+          schema:
+            type: string
+            enum:
+              - stable
+              - nightly
+
+        - name: version_cursor
+          in: query
+          required: false
+          description: |
+            Return releases older than this version. The version must be a
+            valid PCSX2 semantic-version tag.
+          schema:
+            type: string
+          example: v1.7.6000
+
+        - name: page_size
+          in: query
+          required: false
+          description: |
+            Maximum number of releases to return. Values are clamped to
+            the range 1-200. Defaults to 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+
+        - name: min_version
+          in: query
+          required: false
+          description: Minimum version to include.
+          schema:
+            type: string
+          example: v1.7.5000
+
+        - name: max_version
+          in: query
+          required: false
+          description: Maximum version to include.
+          schema:
+            type: string
+          example: v1.7.6000
+
+      responses:
+        "200":
+          description: Releases ordered from newest to oldest.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Release"
+
+        "400":
+          description: One or more version parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/releases/search:
+    post:
+      tags: [Releases]
+      summary: Search release notes
+      operationId: searchReleases
+      description: |
+        Searches the release notes for matching text. Requires a valid
+        API key in the X-PCSX2-API-Key header.
+      security:
+        - ApiKeyAuth: []
+
+      parameters:
+        - $ref: "#/components/parameters/ApiKey"
+
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+            example: "graphics fixes"
+
+      responses:
+        "200":
+          description: Matching releases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Release"
+
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/webhooks/githubReleaseEvent:
+    post:
+      tags: [Webhooks]
+      summary: Receive a GitHub release webhook
+      operationId: handleGithubReleaseEvent
+      description: |
+        Receives signed GitHub release webhook events.
+
+        The webhook guard validates the signature before the handler
+        processes the event. :contentReference[oaicite:2]{index=2}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: GitHub release webhook payload
+
+      responses:
+        "202":
+          description: Webhook accepted
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v2/admin/addNewAPIKey:
+    post:
+      tags: [Admin]
+      summary: Add an API key
+      operationId: addNewApiKey
+      description: |
+        Adds a new API key. Requires administrative authentication.
+      security:
+        - AdminApiKeyAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddAPIKeyRequest"
+
+      responses:
+        "202":
+          description: API key accepted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+
+  # ============================================================================
+  # V1 - DEPRECATED
+  # ============================================================================
+
+  /v1/latestReleasesAndPullRequests:
+    get:
+      tags: [V1]
+      deprecated: true
+      summary: Get latest releases and pull requests
+      operationId: v1GetLatestReleasesAndPullRequests
+      responses:
+        "200":
+          description: Latest stable and nightly releases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V1LatestReleasesAndPullRequestsResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/stableReleases:
+    get:
+      tags: [V1]
+      deprecated: true
+      summary: List stable releases
+      operationId: v1ListStableReleases
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+
+      responses:
+        "200":
+          description: Stable releases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V1ReleasesResponse"
+
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /v1/nightlyReleases:
+    get:
+      tags: [V1]
+      deprecated: true
+      summary: List nightly releases
+      operationId: v1ListNightlyReleases
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+
+      responses:
+        "200":
+          description: Nightly releases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V1ReleasesResponse"
+
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+
+components:
+
+  # ============================================================================
+  # Security
+  # ============================================================================
+
+  securitySchemes:
+
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-PCSX2-API-Key
+
+    AdminApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-PCSX2-Admin-API-Key
+
+  parameters:
+
+    ApiKey:
+      name: X-PCSX2-API-Key
+      in: header
+      required: true
+      description: API key authorized to access the endpoint.
+      schema:
+        type: string
+
+  # ============================================================================
+  # V2 Models
+  # ============================================================================
+
+  schemas:
+
+    Release:
+      type: object
+      required:
+        - version
+        - githubReleaseId
+        - githubUrl
+        - releaseType
+        - assets
+      properties:
+        version:
+          type: string
+          example: v1.7.6000
+
+        publishedTimestamp:
+          type: string
+          nullable: true
+          format: date-time
+
+        createdTimestamp:
+          type: string
+          nullable: true
+          format: date-time
+
+        githubReleaseId:
+          type: integer
+          format: int64
+          example: 12345
+
+        githubUrl:
+          type: string
+          format: uri
+          example: https://github.com/PCSX2/pcsx2/releases/tag/v1.7.6000
+
+        releaseType:
+          type: string
+          example: stable
+
+        notes:
+          type: string
+          nullable: true
+
+        assets:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/ReleaseAsset"
+
+    ReleaseAsset:
+      type: object
+      required:
+        - downloadUrl
+        - tags
+        - downloadCount
+        - downloadSizeBytes
+      properties:
+        downloadUrl:
+          type: string
+          format: uri
+
+        tags:
+          type: array
+          items:
+            type: string
+
+        downloadCount:
+          type: integer
+          format: int64
+
+        downloadSizeBytes:
+          type: integer
+          format: int64
+
+    AddAPIKeyRequest:
+      type: object
+      required:
+        - apiKey
+        - metadata
+      properties:
+        apiKey:
+          type: string
+
+        metadata:
+          type: string
+
+
+    # ==========================================================================
+    # V1 Models
+    # ==========================================================================
+
+    ReleaseAssetV1:
+      type: object
+      required:
+        - url
+        - displayName
+        - additionalTags
+        - downloadCount
+        - size
+      properties:
+        url:
+          type: string
+          format: uri
+
+        displayName:
+          type: string
+
+        additionalTags:
+          type: array
+          items:
+            type: string
+
+        downloadCount:
+          type: integer
+          format: int64
+
+        size:
+          type: integer
+          format: int64
+
+    ReleaseV1:
+      type: object
+      required:
+        - version
+        - url
+        - semverMajor
+        - semverMinor
+        - semverPatch
+        - assets
+        - type
+        - prerelease
+      properties:
+        version:
+          type: string
+
+        url:
+          type: string
+          format: uri
+
+        semverMajor:
+          type: integer
+          format: int64
+
+        semverMinor:
+          type: integer
+          format: int64
+
+        semverPatch:
+          type: integer
+          format: int64
+
+        description:
+          type: string
+          nullable: true
+
+        assets:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/ReleaseAssetV1"
+
+        type:
+          type: integer
+          description: |
+            Release type. 1 = stable, 2 = nightly.
+
+        prerelease:
+          type: boolean
+
+        createdAt:
+          type: string
+          nullable: true
+          format: date-time
+
+        publishedAt:
+          type: string
+          nullable: true
+          format: date-time
+
+    PageInfo:
+      type: object
+      required:
+        - total
+      properties:
+        total:
+          type: integer
+          format: int64
+
+    V1LatestReleasesAndPullRequestsResponseData:
+      type: object
+      required:
+        - data
+        - pageInfo
+      properties:
+        data:
+          type: array
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/ReleaseV1"
+
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    V1LatestReleasesAndPullRequestsResponse:
+      type: object
+      required:
+        - stableReleases
+        - nightlyReleases
+      properties:
+        stableReleases:
+          $ref: "#/components/schemas/V1LatestReleasesAndPullRequestsResponseData"
+
+        nightlyReleases:
+          $ref: "#/components/schemas/V1LatestReleasesAndPullRequestsResponseData"
+
+    V1ReleasesResponse:
+      type: object
+      required:
+        - data
+        - pageInfo
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReleaseV1"
+
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    Error:
+      type: object
+      description: Error response.
+
+  responses:
+
+    BadRequest:
+      description: Bad request.
+
+    Unauthorized:
+      description: Authentication failed or API key was not supplied.
+
+    TooManyRequests:
+      description: Rate limit exceeded.
+
+    InternalServerError:
+      description: Internal server error.

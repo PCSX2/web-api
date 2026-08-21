@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE releases SET notes = ?, assets = ?, next_audit = ?, next_audit_days = ? WHERE version = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "83a86cf6c69b24f30632fb2de47ec79bc5f2fe66363f7f5c8af836c23e386884"
+}

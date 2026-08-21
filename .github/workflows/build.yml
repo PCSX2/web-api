@@ -30,7 +30,7 @@ jobs:
         with:
           shared-key: web-api-build-${{ matrix.platform }}
 
-      - name: Build Tauri App
+      - name: Build API
         run: |
           cargo install --path .
 

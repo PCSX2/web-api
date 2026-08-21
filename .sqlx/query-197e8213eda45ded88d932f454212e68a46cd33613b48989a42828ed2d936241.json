@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT * FROM releases WHERE release_type = ? AND version_integral < ? AND archived = 0 ORDER BY version_integral DESC LIMIT ?;\n          ",
+  "query": "\n            SELECT\n                id,\n                version,\n                version_integral,\n                published_timestamp,\n                created_timestamp,\n                github_release_id,\n                github_url,\n                release_type,\n                next_audit,\n                next_audit_days,\n                archived,\n                notes,\n                assets\n            FROM releases\n            WHERE version = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -70,7 +70,7 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 1
     },
     "nullable": [
       false,
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "aeb714ba8fea0875403dfd7167616f53df3a0eda8d9695ccd0e0e1882cd672b2"
+  "hash": "197e8213eda45ded88d932f454212e68a46cd33613b48989a42828ed2d936241"
 }

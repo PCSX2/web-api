@@ -2,6 +2,7 @@ use std::error::Error;
 use std::sync::Mutex;
 
 use hmac::{Hmac, Mac};
+use log::{debug, error};
 use octocrab::models::webhook_events::WebhookEvent;
 use rocket::data::{FromData, ToByteUnit};
 use rocket::http::Status;
@@ -11,8 +12,8 @@ use rocket::{Data, Request};
 use sha2::Sha256;
 use sqlx::{Pool, Sqlite};
 
-use crate::storage::sqlite::get_api_key_metadata;
-use crate::RateLimiterCache;
+use crate::ratelimiter::RateLimiterCache;
+use crate::storage::sqlite::{self, get_api_key_metadata};
 
 pub struct GithubWebhookEvent(pub WebhookEvent);
 
@@ -143,16 +144,50 @@ impl<'r> FromRequest<'r> for AdminAccess {
     type Error = std::convert::Infallible;
 
     async fn from_request(request: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
-        let admin_key = dotenvy::var("ADMIN_API_KEY").expect("ADMIN_API_KEY env var");
+        let admin_api_key = match dotenvy::var("ADMIN_API_KEY") {
+            Ok(value) => value,
+            Err(_err) => return Outcome::Forward(Status::Unauthorized),
+        };
+
         match request.headers().get_one("X-PCSX2-API-Key") {
             Some(api_key) => {
-                if api_key == admin_key {
+                if api_key == admin_api_key {
                     return Outcome::Success(AdminAccess);
                 } else {
                     return Outcome::Forward(Status::Unauthorized);
                 }
             }
             None => {
+                return Outcome::Forward(Status::Unauthorized);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ApiKeyAccess;
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for ApiKeyAccess {
+    type Error = std::convert::Infallible;
+
+    async fn from_request(request: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        let api_key = match request.headers().get_one("X-PCSX2-API-Key") {
+            Some(api_key) => api_key,
+            None => return Outcome::Forward(Status::Unauthorized),
+        };
+
+        let db = match request.rocket().state::<Pool<Sqlite>>() {
+            Some(db) => db,
+            None => {
+                return Outcome::Forward(Status::Unauthorized);
+            }
+        };
+
+        match sqlite::get_api_key_metadata(db, api_key).await {
+            Ok(_) => Outcome::Success(ApiKeyAccess),
+            Err(err) => {
+                log::error!("failed to validate API key: {:?}", err);
                 return Outcome::Forward(Status::Unauthorized);
             }
         }

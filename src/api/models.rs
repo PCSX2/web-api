@@ -16,7 +16,7 @@ pub struct ReleaseAsset {
     pub download_size_bytes: i64,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct Release {

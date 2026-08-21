@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT *\n        FROM releases\n        WHERE release_type = ?\n          AND archived = 0\n          AND (? IS NULL OR version_integral >= ?)\n          AND (? IS NULL OR version_integral <= ?)\n          AND (? IS NULL OR version_integral < ?)\n        ORDER BY version_integral DESC\n        LIMIT ?;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "version",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "version_integral",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "published_timestamp",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_timestamp",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "github_release_id",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "github_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "release_type",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_audit_days",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "archived",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "notes",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "assets",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "aae6676d43efd3f77985a4f93aa795b987b6d024ed9da62f8e9cf639036dbc30"
+}
