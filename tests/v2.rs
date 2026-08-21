@@ -1,6 +1,6 @@
 mod common;
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use pcsx2_api::{api::models::Release, storage::sqlite::insert_new_release};
 use rocket::http::{ContentType, Header, Status};
 use sha2::Sha256;

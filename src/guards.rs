@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::sync::Mutex;
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use log::{debug, error};
 use octocrab::models::webhook_events::WebhookEvent;
 use rocket::data::{FromData, ToByteUnit};

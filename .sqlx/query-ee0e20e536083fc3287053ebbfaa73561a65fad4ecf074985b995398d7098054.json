@@ -6,12 +6,24 @@
       {
         "name": "api_key",
         "ordinal": 0,
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "api_keys",
+            "name": "api_key"
+          }
+        }
       },
       {
         "name": "metadata_json",
         "ordinal": 1,
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "api_keys",
+            "name": "metadata_json"
+          }
+        }
       }
     ],
     "parameters": {
