@@ -8,6 +8,9 @@ use std::{collections::HashMap, sync::Mutex};
 
 use crate::common::{test_client, test_release, test_release_with_notes};
 
+// TODO - missing tests that use min/max version in LIST
+// also missing tests around the search endpoint
+
 #[rocket::async_test]
 async fn latest_returns_newest_release() {
     let (client, db) = test_client().await;
