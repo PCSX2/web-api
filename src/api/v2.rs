@@ -2,7 +2,7 @@ use std::{collections::HashMap, print, vec};
 
 use crate::{
     api::models::Release,
-    guards::{AdminAccess, GithubWebhookEvent, RateLimiter},
+    guards::{AdminAccess, ApiKeyAccess, GithubWebhookEvent, RateLimiter},
     responders::CachedResponse,
     storage::{
         models::ReleaseRow,
@@ -130,18 +130,17 @@ pub async fn get_release_changelog(
     }
 }
 
-#[get("/releases/<release_type>?<version_cursor>&<page_size>")]
+#[get("/releases/<release_type>?<version_cursor>&<page_size>&<min_version>&<max_version>")]
 pub async fn get_release_list(
     _rate_limiter: RateLimiter,
     db: &State<Pool<Sqlite>>,
     release_type: &str,
     version_cursor: Option<String>,
     page_size: Option<i32>,
+    min_version: Option<String>,
+    max_version: Option<String>,
 ) -> Result<CachedResponse<Json<Vec<Release>>>, Status> {
-    let mut final_page_size = 100;
-    if let Some(size) = page_size {
-        final_page_size = size.clamp(1, 200);
-    }
+    let final_page_size = page_size.unwrap_or(100).clamp(1, 200);
 
     let version_cursor_integral = match version_cursor {
         Some(cursor) => match semver_tag_to_integral(&cursor) {
@@ -151,10 +150,52 @@ pub async fn get_release_list(
         None => None,
     };
 
-    debug!("version_cursor_integral: {:?}", version_cursor_integral);
+    let min_version_integral = match min_version {
+        Some(version) => match semver_tag_to_integral(&version) {
+            Some(integral) => Some(integral),
+            None => return Err(Status::BadRequest),
+        },
+        None => None,
+    };
 
-    let db_releases =
-        sqlite::list_releases(db, version_cursor_integral, release_type, final_page_size).await;
+    let max_version_integral = match max_version {
+        Some(version) => match semver_tag_to_integral(&version) {
+            Some(integral) => Some(integral),
+            None => return Err(Status::BadRequest),
+        },
+        None => None,
+    };
+
+    let db_releases = sqlite::list_releases(
+        db,
+        version_cursor_integral,
+        min_version_integral,
+        max_version_integral,
+        release_type,
+        final_page_size,
+    )
+    .await;
+
+    match db_releases {
+        Ok(db_releases) => {
+            let releases = db_releases.iter().map(Release::from_database).collect();
+
+            Ok(CachedResponse::new(
+                Json(releases),
+                "public, max-age=300".to_owned(),
+            ))
+        }
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[post("/releases/search", data = "<query>")]
+pub async fn post_search_releases(
+    _api_key: ApiKeyAccess,
+    db: &State<Pool<Sqlite>>,
+    query: String,
+) -> Result<CachedResponse<Json<Vec<Release>>>, Status> {
+    let db_releases = sqlite::search_releases_by_notes(db, &query).await;
     match db_releases {
         Ok(db_releases) => {
             let releases = db_releases
@@ -169,13 +210,6 @@ pub async fn get_release_list(
         Err(_) => Err(Status::InternalServerError),
     }
 }
-
-// TODO - add searching capabilities alongside new frontend features (no point doing it yet)
-// #[post("/releases/search")]
-// pub async fn post_search_releases(db: &State<Pool<Sqlite>>) -> sqlite::DBResult<Json<Release>> {
-//     let release = sqlite::get_version(db).await?;
-//     Ok(Json(release))
-// }
 
 #[post("/webhooks/githubReleaseEvent", format = "json", data = "<event>")]
 pub async fn handle_github_webhook_release_event(

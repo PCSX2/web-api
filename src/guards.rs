@@ -13,7 +13,7 @@ use sha2::Sha256;
 use sqlx::{Pool, Sqlite};
 
 use crate::ratelimiter::RateLimiterCache;
-use crate::storage::sqlite::get_api_key_metadata;
+use crate::storage::sqlite::{self, get_api_key_metadata};
 
 pub struct GithubWebhookEvent(pub WebhookEvent);
 
@@ -158,6 +158,36 @@ impl<'r> FromRequest<'r> for AdminAccess {
                 }
             }
             None => {
+                return Outcome::Forward(Status::Unauthorized);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ApiKeyAccess;
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for ApiKeyAccess {
+    type Error = std::convert::Infallible;
+
+    async fn from_request(request: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        let api_key = match request.headers().get_one("X-PCSX2-API-Key") {
+            Some(api_key) => api_key,
+            None => return Outcome::Forward(Status::Unauthorized),
+        };
+
+        let db = match request.rocket().state::<Pool<Sqlite>>() {
+            Some(db) => db,
+            None => {
+                return Outcome::Forward(Status::Unauthorized);
+            }
+        };
+
+        match sqlite::get_api_key_metadata(db, api_key).await {
+            Ok(_) => Outcome::Success(ApiKeyAccess),
+            Err(err) => {
+                log::error!("failed to validate API key: {:?}", err);
                 return Outcome::Forward(Status::Unauthorized);
             }
         }

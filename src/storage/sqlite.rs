@@ -144,30 +144,37 @@ pub async fn get_release_notes_for_range(
 pub async fn list_releases(
     db: &SqlitePool,
     start_cursor_integral: Option<i64>,
+    min_version_integral: Option<i64>,
+    max_version_integral: Option<i64>,
     release_type: &str,
     page_size: i32,
 ) -> DBResult<Vec<ReleaseRow>> {
-    if start_cursor_integral.is_none() {
-        let releases = sqlx::query_as!(
-            ReleaseRow,
-            r#"
-            SELECT * FROM releases WHERE release_type = ? AND archived = 0 ORDER BY version_integral DESC LIMIT ?;
-          "#, release_type, page_size
-        )
-        .fetch_all(db)
-        .await?;
-        Ok(releases)
-    } else {
-        let releases = sqlx::query_as!(
-            ReleaseRow,
-            r#"
-            SELECT * FROM releases WHERE release_type = ? AND version_integral < ? AND archived = 0 ORDER BY version_integral DESC LIMIT ?;
-          "#, release_type, start_cursor_integral, page_size
-        )
-        .fetch_all(db)
-        .await?;
-        Ok(releases)
-    }
+    let releases = sqlx::query_as!(
+        ReleaseRow,
+        r#"
+        SELECT *
+        FROM releases
+        WHERE release_type = ?
+          AND archived = 0
+          AND (? IS NULL OR version_integral >= ?)
+          AND (? IS NULL OR version_integral <= ?)
+          AND (? IS NULL OR version_integral < ?)
+        ORDER BY version_integral DESC
+        LIMIT ?;
+        "#,
+        release_type,
+        min_version_integral,
+        min_version_integral,
+        max_version_integral,
+        max_version_integral,
+        start_cursor_integral,
+        start_cursor_integral,
+        page_size
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(releases)
 }
 
 pub async fn list_all_release_tags(db: &SqlitePool) -> DBResult<Vec<ReleaseVersion>> {
@@ -182,7 +189,22 @@ pub async fn list_all_release_tags(db: &SqlitePool) -> DBResult<Vec<ReleaseVersi
     Ok(versions)
 }
 
-// TODO - search releases
+pub async fn search_releases_by_notes(db: &SqlitePool, query: &str) -> DBResult<Vec<ReleaseRow>> {
+    let pattern = format!("%{}%", query);
+    let releases = sqlx::query_as!(
+        ReleaseRow,
+        r#"
+        SELECT *
+        FROM releases
+        WHERE notes LIKE ? COLLATE NOCASE
+        ORDER BY version
+        "#,
+        pattern
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(releases)
+}
 
 pub async fn get_api_key_metadata(db: &SqlitePool, api_key: &str) -> DBResult<APIKeyMetadataRow> {
     let api_key_metadata = sqlx::query_as!(

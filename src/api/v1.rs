@@ -1,5 +1,3 @@
-// TODO V1 - to be removed asap
-
 use std::collections::HashMap;
 use std::vec;
 

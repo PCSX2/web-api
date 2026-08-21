@@ -28,6 +28,7 @@ pub fn build_rocket(db: SqlitePool, rate_limiter: Mutex<RateLimiterCache>) -> Ro
                 api::v2::get_release_list,
                 api::v2::handle_github_webhook_release_event,
                 api::v2::admin_add_new_api_key,
+                api::v2::post_search_releases,
             ],
         )
         .attach(fairings::CORSHeaderFairing::default())
