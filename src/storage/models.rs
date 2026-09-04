@@ -66,11 +66,24 @@ impl ReleaseRow {
                 }
             }
 
+            // We sometimes get       /releases/download/untagged-<commit>/...
+            // instead of the correct /releases/download/<tag>/...
+            // Thanks, GitHub
+
+            let bad_url_regex = Regex::new(r"/releases/download/untagged/-[^/]+/").unwrap();
+
+            let download_url = bad_url_regex
+                .replace(
+                    asset.browser_download_url.as_str(),
+                    format!("/releases/download/{}/", github_release.tag_name),
+                )
+                .to_string();
+
             assets
                 .entry(platform.to_owned())
                 .or_insert_with(Vec::new)
                 .push(ReleaseAsset {
-                    download_url: asset.browser_download_url.to_string(),
+                    download_url: download_url,
                     tags,
                     download_count: asset.download_count,
                     download_size_bytes: asset.size,
