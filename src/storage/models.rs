@@ -70,7 +70,7 @@ impl ReleaseRow {
             // instead of the correct /releases/download/<tag>/...
             // Thanks, GitHub
 
-            let bad_url_regex = Regex::new(r"/releases/download/untagged/-[^/]+/").unwrap();
+            let bad_url_regex = Regex::new(r"/releases/download/untagged-[^/]+/").unwrap();
 
             let download_url = bad_url_regex
                 .replace(
