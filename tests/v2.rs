@@ -741,6 +741,98 @@ async fn github_webhook_release_edited() {
 }
 
 #[rocket::async_test]
+async fn github_webhook_release_edited_bad_url() {
+    let _lock = ADMIN_API_KEY_ENV_VAR_LOCK.lock().unwrap();
+
+    let secret = "test-webhook-secret";
+    let _env = AdminApiKeyEnvVarGuard::set("GITHUB_WEBHOOK_SECRET", secret);
+
+    let (client, db) = test_client().await;
+
+    insert_new_release(&db, &test_release("v1.2.3", false))
+        .await
+        .unwrap();
+
+    let body = serde_json::json!({
+        "action": "edited",
+        "release": {
+            "url": "https://api.github.com/repos/test/test/releases/123456",
+            "html_url": "https://github.com/test/test/releases/123456",
+            "assets_url": "https://api.github.com/repos/test/test/releases/123456/assets",
+            "upload_url": "https://uploads.github.com/repos/test/test/releases/123456/assets{?name,label}",
+            "tarball_url": "https://api.github.com/repos/test/test/tarball/v1.2.3",
+            "zipball_url": "https://api.github.com/repos/test/test/zipball/v1.2.3",
+            "id": 123456,
+            "node_id": "RELEASE_123456",
+            "tag_name": "v1.2.3",
+            "target_commitish": "master",
+            "name": "v1.2.3",
+            "body": "Updated test release notes",
+            "draft": false,
+            "prerelease": false,
+            "created_at": "2026-08-07T12:00:00Z",
+            "published_at": "2026-08-07T12:00:00Z",
+            "author": null,
+            "assets": [
+                {
+                    "url": "https://api.github.com/repos/test/test/releases/assets/1",
+                    "browser_download_url": "https://github.com/test/test/releases/download/untagged-123hbd/pcsx2-v1.2.3-windows.zip",
+                    "id": 1,
+                    "node_id": "ASSET_1",
+                    "name": "test-v1.2.3.zip",
+                    "label": null,
+                    "state": "uploaded",
+                    "content_type": "application/zip",
+                    "size": 1024,
+                    "download_count": 42,
+                    "created_at": "2026-08-07T12:00:00Z",
+                    "updated_at": "2026-08-07T12:00:00Z",
+                    "uploader": null
+                }
+            ]
+        }
+    });
+
+    let body = serde_json::to_vec(&body).unwrap();
+    let signature = github_signature(secret, &body);
+
+    let response = client
+        .post("/v2/webhooks/githubReleaseEvent")
+        .header(ContentType::JSON)
+        .header(Header::new("X-Github-Event", "release"))
+        .header(Header::new("X-Hub-Signature-256", signature))
+        .header(Header::new("CF-Connecting-IP", "127.0.0.1"))
+        .body(body)
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::Accepted);
+
+    let response = client
+        .get("/v2/releases/stable")
+        .header(Header::new("CF-Connecting-IP", "127.0.0.1"))
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::Ok);
+
+    let releases: Vec<Release> = response.into_json().await.unwrap();
+
+    assert_eq!(releases.len(), 1);
+
+    let release = &releases[0];
+
+    // update_existing_release() only modifies these two fields.
+    assert_eq!(release.version, "v1.2.3");
+    assert_eq!(release.notes.as_deref(), Some("Updated test release notes"));
+    assert_eq!(release.assets.len(), 1);
+    assert_eq!(
+        release.assets.get("Windows").expect("")[0].download_url,
+        "https://github.com/test/test/releases/download/v1.2.3/pcsx2-v1.2.3-windows.zip"
+    );
+}
+
+#[rocket::async_test]
 async fn github_webhook_release_deleted() {
     let _lock = ADMIN_API_KEY_ENV_VAR_LOCK.lock().unwrap();
 
